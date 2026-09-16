@@ -8,6 +8,8 @@ import { ProgramGuideView } from './components/info/ProgramGuideView';
 import { StatsOverview } from './components/dashboard/StatsOverview';
 import { LogRunModal } from './components/run/LogRunModal';
 import { AutoSchedulerModal } from './components/calendar/AutoSchedulerModal';
+import { CloudSyncModal } from './components/common/CloudSyncModal';
+import { CloudSyncPayload } from './utils/cloudSync';
 import { format } from 'date-fns';
 
 export function App() {
@@ -21,6 +23,7 @@ export function App() {
   // Modals state
   const [runModalData, setRunModalData] = useState<{ date: string; existingLog?: WorkoutLog } | null>(null);
   const [isAutoSchedulerOpen, setIsAutoSchedulerOpen] = useState(false);
+  const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false);
 
   useEffect(() => {
     const initialLogs = getStoredLogs();
@@ -82,6 +85,14 @@ export function App() {
     setActiveTab('calendar');
   };
 
+  // Apply downloaded Cloud Sync data
+  const handleApplyCloudData = (payload: CloudSyncPayload) => {
+    if (payload.logs) {
+      handleSaveLogs(payload.logs);
+      setActiveTab('calendar');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       
@@ -90,6 +101,7 @@ export function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onQuickStart={(type) => handleStartWorkout(type, format(new Date(), 'yyyy-MM-dd'))}
+        onOpenCloudSync={() => setIsCloudSyncOpen(true)}
       />
 
       {/* Main View Area with padding for fixed bars */}
@@ -121,7 +133,7 @@ export function App() {
       {/* Footer */}
       <footer className="bg-slate-900/60 border-t border-slate-800/80 py-4 text-center text-xs text-slate-500 hidden md:block">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>Styrketreningsprogram for Løpere (55 år) • Mobil-optimalisert Web App</span>
+          <span>Styrketreningsprogram for Løpere (55 år) • Mobil & PC Sky-Synkronisert App</span>
           <span>Bygget med React, TypeScript & Tailwind CSS</span>
         </div>
       </footer>
@@ -141,6 +153,15 @@ export function App() {
         <AutoSchedulerModal
           onGenerate={handleGenerateAutoSchedule}
           onClose={() => setIsAutoSchedulerOpen(false)}
+        />
+      )}
+
+      {/* Cloud Sync Modal */}
+      {isCloudSyncOpen && (
+        <CloudSyncModal
+          logs={logs}
+          onApplyCloudData={handleApplyCloudData}
+          onClose={() => setIsCloudSyncOpen(false)}
         />
       )}
 

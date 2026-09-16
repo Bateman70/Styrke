@@ -1,13 +1,19 @@
 import React from 'react';
-import { Dumbbell, Calendar as CalendarIcon, Play, BarChart2, Info, Zap } from 'lucide-react';
+import { Dumbbell, Calendar as CalendarIcon, Play, BarChart2, Info, Zap, Cloud } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: 'calendar' | 'workout' | 'run' | 'stats' | 'guide';
   setActiveTab: (tab: 'calendar' | 'workout' | 'run' | 'stats' | 'guide') => void;
   onQuickStart: (type: 'okt-a' | 'okt-b') => void;
+  onOpenCloudSync: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onQuickStart }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  activeTab,
+  setActiveTab,
+  onQuickStart,
+  onOpenCloudSync,
+}) => {
   return (
     <>
       {/* Sticky / Fixed Top Navbar */}
@@ -81,11 +87,23 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onQuick
               </button>
             </nav>
 
-            {/* Quick Start Buttons */}
+            {/* Right Action Cluster: Quick Start + Cloud Sync */}
             <div className="flex items-center space-x-2 shrink-0">
+              
+              {/* Cloud Sync Button */}
+              <button
+                onClick={onOpenCloudSync}
+                className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/20 text-xs font-semibold transition-all flex items-center space-x-1.5 shadow-sm"
+                title="Synkroniser data mellom mobil og PC"
+              >
+                <Cloud className="w-4 h-4 text-cyan-400" />
+                <span className="hidden sm:inline">Sky-Synk</span>
+              </button>
+
+              {/* Quick Start Buttons */}
               <button
                 onClick={() => onQuickStart('okt-a')}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition-all flex items-center space-x-1 shadow-sm"
+                className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition-all flex items-center space-x-1 shadow-sm"
                 title="Start Økt A nå"
               >
                 <Zap className="w-3.5 h-3.5" />
@@ -94,7 +112,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onQuick
 
               <button
                 onClick={() => onQuickStart('okt-b')}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 transition-all flex items-center space-x-1 shadow-sm"
+                className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 transition-all flex items-center space-x-1 shadow-sm"
                 title="Start Økt B nå"
               >
                 <Zap className="w-3.5 h-3.5" />
@@ -106,7 +124,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onQuick
         </div>
       </header>
 
-      {/* Mobile Bottom Navigation Bar (App Format) */}
+      {/* Mobile Bottom Navigation Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 px-2 py-2 flex items-center justify-around shadow-2xl">
         
         <button
@@ -127,6 +145,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onQuick
         >
           <Play className="w-5 h-5" />
           <span className="text-[10px]">Aktiv Økt</span>
+        </button>
+
+        <button
+          onClick={onOpenCloudSync}
+          className="flex flex-col items-center space-y-1 py-1 px-3 rounded-xl text-cyan-400"
+        >
+          <Cloud className="w-5 h-5" />
+          <span className="text-[10px]">Sky-Synk</span>
         </button>
 
         <button
