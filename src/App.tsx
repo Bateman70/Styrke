@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { WorkoutLog, WorkoutType } from './types/workout';
 import { getStoredLogs, saveStoredLogs, generateAutoSchedule } from './utils/storage';
 import { Navbar } from './components/Navbar';
@@ -9,12 +9,13 @@ import { StatsOverview } from './components/dashboard/StatsOverview';
 import { LogRunModal } from './components/run/LogRunModal';
 import { AutoSchedulerModal } from './components/calendar/AutoSchedulerModal';
 import { CloudSyncModal } from './components/common/CloudSyncModal';
-import { CloudSyncPayload } from './utils/cloudSync';
+import { autoSaveToCloud, autoFetchFromCloud, CloudSyncPayload } from './utils/cloudSync';
 import { format } from 'date-fns';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'calendar' | 'workout' | 'run' | 'stats' | 'guide'>('calendar');
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
+  const isFirstLoad = useRef(true);
   
   // State for active workout execution
   const [activeWorkoutType, setActiveWorkoutType] = useState<WorkoutType>('okt-a');
@@ -25,14 +26,49 @@ export function App() {
   const [isAutoSchedulerOpen, setIsAutoSchedulerOpen] = useState(false);
   const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false);
 
+  // 1. Initial Load: Load local logs, then silently auto-fetch cloud data
   useEffect(() => {
     const initialLogs = getStoredLogs();
     setLogs(initialLogs);
+
+    // Silent background fetch from cloud
+    autoFetchFromCloud().then((cloudData) => {
+      if (cloudData && cloudData.logs && cloudData.logs.length > 0) {
+        setLogs(cloudData.logs);
+        saveStoredLogs(cloudData.logs);
+      }
+      isFirstLoad.current = false;
+    });
   }, []);
 
+  // 2. Auto-fetch on window focus / tab switch
+  useEffect(() => {
+    const handleFocus = () => {
+      autoFetchFromCloud().then((cloudData) => {
+        if (cloudData && cloudData.logs && cloudData.logs.length > 0) {
+          setLogs(cloudData.logs);
+          saveStoredLogs(cloudData.logs);
+        }
+      });
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') handleFocus();
+    });
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  // Save logs locally and automatically trigger background cloud upload
   const handleSaveLogs = (updatedLogs: WorkoutLog[]) => {
     setLogs(updatedLogs);
     saveStoredLogs(updatedLogs);
+    
+    // Automatic silent cloud save (No manual clicks needed!)
+    autoSaveToCloud(updatedLogs);
   };
 
   // Start a strength workout (Økt A or Økt B)
@@ -81,11 +117,11 @@ export function App() {
   // Auto Schedule generation with custom selected days
   const handleGenerateAutoSchedule = (selectedDays: number[], startDate: string) => {
     const newLogs = generateAutoSchedule(selectedDays, startDate, logs);
-    setLogs(newLogs);
+    handleSaveLogs(newLogs);
     setActiveTab('calendar');
   };
 
-  // Apply downloaded Cloud Sync data
+  // Apply downloaded Cloud Sync data from modal
   const handleApplyCloudData = (payload: CloudSyncPayload) => {
     if (payload.logs) {
       handleSaveLogs(payload.logs);
@@ -133,7 +169,7 @@ export function App() {
       {/* Footer */}
       <footer className="bg-slate-900/60 border-t border-slate-800/80 py-4 text-center text-xs text-slate-500 hidden md:block">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>Styrketreningsprogram for Løpere (55 år) • Mobil & PC Sky-Synkronisert App</span>
+          <span>Styrketreningsprogram for Løpere (55 år) • Automatisk Sky-Synkronisert Web App</span>
           <span>Bygget med React, TypeScript & Tailwind CSS</span>
         </div>
       </footer>

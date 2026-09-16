@@ -1,15 +1,42 @@
 import { WorkoutLog, UserScheduleConfig } from '../types/workout';
 
-// Free, fast cloud key-value API endpoint for instant cross-device sync (Mobile <-> PC)
-// Uses kvdb.io public buckets (no registration required)
-const BUCKET_ID = 'styrke_app_sync_v1_89231';
+// Automatic Cloud Database Sync (No manual clicks needed!)
+const BUCKET_ID = 'styrke_app_sync_auto_v2_99481';
 const BASE_URL = `https://kvdb.io/${BUCKET_ID}`;
+
+// Default shared project key for automatic cross-device sync
+const DEFAULT_SYNC_KEY = 'styrke_hovedbruker_55';
 
 export interface CloudSyncPayload {
   syncCode: string;
   updatedAt: string;
   logs: WorkoutLog[];
   scheduleConfig?: UserScheduleConfig;
+}
+
+// Get or set device sync key
+export function getActiveSyncKey(): string {
+  const stored = localStorage.getItem('styrke_app_auto_sync_key');
+  if (stored && stored.trim()) {
+    return stored.trim().toLowerCase();
+  }
+  return DEFAULT_SYNC_KEY;
+}
+
+export function setActiveSyncKey(key: string): void {
+  localStorage.setItem('styrke_app_auto_sync_key', key.trim().toLowerCase());
+}
+
+// Silent automatic upload to cloud database
+export async function autoSaveToCloud(logs: WorkoutLog[], scheduleConfig?: UserScheduleConfig): Promise<boolean> {
+  const syncKey = getActiveSyncKey();
+  return uploadToCloud(syncKey, logs, scheduleConfig);
+}
+
+// Silent automatic download from cloud database
+export async function autoFetchFromCloud(): Promise<CloudSyncPayload | null> {
+  const syncKey = getActiveSyncKey();
+  return downloadFromCloud(syncKey);
 }
 
 // Upload data to Cloud using Sync Code
