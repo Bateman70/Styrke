@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, ExternalLink, Lightbulb, PlayCircle, CheckCircle2 } from 'lucide-react';
+import { X, ExternalLink, Lightbulb, PlayCircle } from 'lucide-react';
 import { Exercise } from '../types/workout';
 
 interface VideoModalProps {
@@ -10,10 +10,12 @@ interface VideoModalProps {
 export const VideoModal: React.FC<VideoModalProps> = ({ exercise, onClose }) => {
   if (!exercise) return null;
 
+  const directYoutubeUrl = exercise.videoUrl.replace('/embed/', '/watch?v=');
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
       <div 
-        className="bg-slate-900 border border-slate-800 rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl transition-all transform scale-100"
+        className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl transition-all"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -36,15 +38,29 @@ export const VideoModal: React.FC<VideoModalProps> = ({ exercise, onClose }) => 
         </div>
 
         {/* Body: Video & Info */}
-        <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+        <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
           
+          {/* Direct YouTube link fallback button if browser blocks inline player */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+            <span className="text-slate-400">Teknikkvideo for øvelsen:</span>
+            <a
+              href={directYoutubeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 font-semibold transition-all"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Åpne direkte i YouTube</span>
+            </a>
+          </div>
+
           {/* Responsive Video Embed */}
           <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner">
             <iframe
-              src={`${exercise.videoUrl}?autoplay=1&rel=0`}
+              src={exercise.videoUrl}
               title={exercise.videoTitle}
               className="absolute inset-0 w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
             />
           </div>
@@ -55,13 +71,13 @@ export const VideoModal: React.FC<VideoModalProps> = ({ exercise, onClose }) => 
               <Lightbulb className="w-4 h-4" />
               <span>Fokuspunkter & Teknikk fra programmet:</span>
             </div>
-            <p className="text-sm text-slate-300 leading-relaxed pl-6 border-l-2 border-amber-500/40">
+            <p className="text-sm text-slate-300 leading-relaxed pl-4 border-l-2 border-amber-500/40">
               {exercise.focus}
             </p>
           </div>
 
           {/* Recommended Reps / Sets */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-center">
+          <div className="grid grid-cols-3 gap-3 text-center">
             <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
               <span className="block text-xs text-slate-400">Anbefalt Sett</span>
               <span className="text-base font-bold text-slate-200">{exercise.defaultSets} sett</span>
@@ -70,23 +86,10 @@ export const VideoModal: React.FC<VideoModalProps> = ({ exercise, onClose }) => 
               <span className="block text-xs text-slate-400">Repetisjoner</span>
               <span className="text-base font-bold text-blue-400">{exercise.defaultReps}</span>
             </div>
-            <div className="col-span-2 sm:col-span-1 bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
+            <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
               <span className="block text-xs text-slate-400">Hvilestyrke / Pause</span>
               <span className="text-base font-bold text-emerald-400">{exercise.restSeconds} sek</span>
             </div>
-          </div>
-
-          {/* External YouTube fallback */}
-          <div className="flex justify-end pt-2">
-            <a
-              href={exercise.videoUrl.replace('/embed/', '/watch?v=')}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center space-x-2 text-xs font-medium text-slate-400 hover:text-blue-400 transition-colors"
-            >
-              <span>Åpne direkte på YouTube</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
           </div>
 
         </div>
@@ -97,7 +100,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({ exercise, onClose }) => 
             onClick={onClose}
             className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-all shadow-md shadow-blue-600/20"
           >
-            Forstått, Lukk
+            Lukk
           </button>
         </div>
       </div>
