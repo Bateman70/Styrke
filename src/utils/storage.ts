@@ -1,5 +1,5 @@
 import { WorkoutLog, UserScheduleConfig, WorkoutType } from '../types/workout';
-import { format, addDays, startOfWeek, isSameDay, getDay } from 'date-fns';
+import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 
 const STORAGE_KEYS = {
   LOGS: 'styrke_app_workout_logs_v1',
@@ -98,32 +98,26 @@ function getInitialSeedLogs(): WorkoutLog[] {
 
 // Generate auto schedule logs for N weeks based on user-selected days of week
 export const generateAutoSchedule = (
-  selectedDays: number[], // e.g. [1, 4] for Mon/Thu, or [1, 3, 5] for Mon/Wed/Fri
+  selectedDays: number[],
   startDateStr: string,
   existingLogs: WorkoutLog[]
 ): WorkoutLog[] => {
   const startDate = new Date(startDateStr);
   const weekStart = startOfWeek(startDate, { weekStartsOn: 1 });
   
-  // Keep logs that are already completed
   const completedLogs = existingLogs.filter((l) => l.status === 'completed');
   const newLogs: WorkoutLog[] = [...completedLogs];
 
   let currentType: WorkoutType = 'okt-a';
 
-  // Sort selected days ascending (e.g. 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 0=Sun)
-  // Convert 0 (Sun) to 7 for monday-start calculations if needed
   const normalizedDays = selectedDays.map((d) => (d === 0 ? 7 : d)).sort((a, b) => a - b);
 
-  // Generate 6 weeks ahead
   for (let week = 0; week < 6; week++) {
     for (const dayNum of normalizedDays) {
-      // dayNum 1 = Monday (0 offset), 2 = Tuesday (1 offset), etc.
       const dayOffset = dayNum - 1;
       const workoutDate = addDays(weekStart, week * 7 + dayOffset);
       const dateStr = format(workoutDate, 'yyyy-MM-dd');
 
-      // Check if already completed on this date
       const alreadyCompleted = completedLogs.find((l) => isSameDay(new Date(l.date), workoutDate));
       if (!alreadyCompleted) {
         newLogs.push({
@@ -134,7 +128,6 @@ export const generateAutoSchedule = (
         });
       }
 
-      // Rotate between Økt A and Økt B
       currentType = currentType === 'okt-a' ? 'okt-b' : 'okt-a';
     }
   }
