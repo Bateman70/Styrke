@@ -16,7 +16,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   return (
     <>
-      {/* Sticky / Fixed Top Navbar */}
+      {/* Fixed Top Navbar - Clean & Spacious */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-lg border-b border-slate-800/90 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -87,23 +87,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </nav>
 
-            {/* Right Action Cluster: Quick Start + Cloud Sync */}
-            <div className="flex items-center space-x-2 shrink-0">
-              
-              {/* Cloud Sync Button */}
-              <button
-                onClick={onOpenCloudSync}
-                className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/20 text-xs font-semibold transition-all flex items-center space-x-1.5 shadow-sm"
-                title="Synkroniser data mellom mobil og PC"
-              >
-                <Cloud className="w-4 h-4 text-cyan-400" />
-                <span className="hidden sm:inline">Sky-Synk</span>
-              </button>
-
-              {/* Quick Start Buttons */}
+            {/* Quick Start Buttons - Hidden on tiny screens to avoid header crowding */}
+            <div className="hidden sm:flex items-center space-x-2 shrink-0">
               <button
                 onClick={() => onQuickStart('okt-a')}
-                className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition-all flex items-center space-x-1 shadow-sm"
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition-all flex items-center space-x-1 shadow-sm"
                 title="Start Økt A nå"
               >
                 <Zap className="w-3.5 h-3.5" />
@@ -112,7 +100,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <button
                 onClick={() => onQuickStart('okt-b')}
-                className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 transition-all flex items-center space-x-1 shadow-sm"
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 transition-all flex items-center space-x-1 shadow-sm"
                 title="Start Økt B nå"
               >
                 <Zap className="w-3.5 h-3.5" />
@@ -149,9 +137,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         <button
           onClick={onOpenCloudSync}
-          className="flex flex-col items-center space-y-1 py-1 px-3 rounded-xl text-cyan-400"
+          className="flex flex-col items-center space-y-1 py-1 px-3 rounded-xl text-cyan-400 font-semibold"
         >
-          <Cloud className="w-5 h-5" />
+          <Cloud className="w-5 h-5 text-cyan-400" />
           <span className="text-[10px]">Sky-Synk</span>
         </button>
 
