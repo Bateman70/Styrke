@@ -3,6 +3,7 @@ import { WorkoutLog, UserScheduleConfig } from '../types/workout';
 // 100% Reliable CORS-enabled Cloud REST API
 const REST_API_URL = 'https://api.restful-api.dev/objects';
 const DEFAULT_SYNC_KEY = 'styrke55';
+const GLOBAL_REGISTRY_ID = 'ff808181a09d98f701a0b65d03ee399f';
 
 export interface CloudSyncPayload {
   syncCode: string;
@@ -42,6 +43,48 @@ function notifyStatus(status: SyncStatus) {
     localStorage.setItem('styrke_last_cloud_sync_time', lastSyncTime);
   }
   statusListeners.forEach((fn) => fn(currentSyncStatus, lastSyncTime));
+}
+
+// Global registry lookup & update helpers
+async function registerGlobalSkyId(syncCode: string, skyId: string): Promise<void> {
+  try {
+    const res = await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}`);
+    let registry: Record<string, string> = {};
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.data && json.data.registry) {
+        registry = JSON.parse(json.data.registry);
+      }
+    }
+    registry[syncCode.trim().toLowerCase()] = skyId;
+    await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'styrke_global_registry_index_v1',
+        data: { registry: JSON.stringify(registry) },
+      }),
+    });
+  } catch (err) {
+    console.error('Error updating global registry:', err);
+  }
+}
+
+async function lookupGlobalSkyId(syncCode: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.data && json.data.registry) {
+        const registry: Record<string, string> = JSON.parse(json.data.registry);
+        return registry[syncCode.trim().toLowerCase()] || null;
+      }
+    }
+    return null;
+  } catch (err) {
+    console.error('Error looking up global registry:', err);
+    return null;
+  }
 }
 
 // Get or set active device sync key
@@ -109,7 +152,7 @@ function minifiedLogs(logs: WorkoutLog[]): WorkoutLog[] {
   }));
 }
 
-// 1. Upload to Cloud (Supabase or REST API direct Sky-ID)
+// 1. Upload to Cloud (Supabase or REST API direct Sky-ID + Global Registry)
 export async function uploadToCloud(
   syncCode: string,
   logs: WorkoutLog[],
@@ -174,6 +217,7 @@ export async function uploadToCloud(
       });
 
       if (putRes.ok) {
+        await registerGlobalSkyId(cleanCode, skyId);
         notifyStatus('synced');
         return true;
       }
@@ -195,6 +239,7 @@ export async function uploadToCloud(
       const created = await postRes.json();
       if (created && created.id) {
         setActiveSkyId(created.id);
+        await registerGlobalSkyId(cleanCode, created.id);
         notifyStatus('synced');
         return true;
       }
@@ -209,7 +254,7 @@ export async function uploadToCloud(
   }
 }
 
-// 2. Download from Cloud (Supabase or REST API direct Sky-ID)
+// 2. Download from Cloud (Supabase or REST API with automatic Registry Lookup)
 export async function downloadFromCloud(syncCode: string): Promise<CloudSyncPayload | null> {
   const cleanCode = syncCode.trim().toLowerCase() || DEFAULT_SYNC_KEY;
   notifyStatus('syncing');
@@ -240,8 +285,16 @@ export async function downloadFromCloud(syncCode: string): Promise<CloudSyncPayl
     }
   }
 
-  // Fallback REST API download using Sky-ID
+  // Fallback REST API download using Sky-ID or Global Registry lookup
   let skyId = getActiveSkyId();
+
+  if (!skyId) {
+    const foundId = await lookupGlobalSkyId(cleanCode);
+    if (foundId) {
+      skyId = foundId;
+      setActiveSkyId(foundId);
+    }
+  }
 
   try {
     if (skyId) {
@@ -254,7 +307,20 @@ export async function downloadFromCloud(syncCode: string): Promise<CloudSyncPayl
           return parsed;
         }
       }
-      // If skyId fetch returned 404, clear stale ID
+      // If skyId fetch returned 404, try global registry lookup once more
+      const foundId = await lookupGlobalSkyId(cleanCode);
+      if (foundId && foundId !== skyId) {
+        setActiveSkyId(foundId);
+        const retryRes = await fetch(`${REST_API_URL}/${foundId}`);
+        if (retryRes.ok) {
+          const json = await retryRes.json();
+          if (json && json.data && json.data.content) {
+            const parsed: CloudSyncPayload = JSON.parse(json.data.content);
+            notifyStatus('synced');
+            return parsed;
+          }
+        }
+      }
       setActiveSkyId('');
     }
 
