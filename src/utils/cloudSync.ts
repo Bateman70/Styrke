@@ -63,6 +63,25 @@ function cleanSupabaseUrl(url: string): string {
   return cleaned;
 }
 
+export function checkAndApplyUrlSupabaseConfig(): boolean {
+  try {
+    const searchParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '');
+    
+    const sbUrl = searchParams.get('sb_url') || hashParams.get('sb_url') || searchParams.get('supabaseUrl');
+    const sbKey = searchParams.get('sb_key') || hashParams.get('sb_key') || searchParams.get('supabaseKey');
+
+    if (sbUrl && sbKey) {
+      setSupabaseConfig(decodeURIComponent(sbUrl), decodeURIComponent(sbKey));
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return true;
+    }
+  } catch (e) {
+    console.error('Error parsing URL params:', e);
+  }
+  return false;
+}
+
 // Global registry lookup & update helpers
 async function registerGlobalSkyId(syncCode: string, skyId: string): Promise<boolean> {
   try {

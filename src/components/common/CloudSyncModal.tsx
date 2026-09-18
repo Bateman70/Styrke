@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Cloud, CloudUpload, CloudDownload, Copy, Check, AlertCircle, Key, FileJson, Database, Link, Sparkles } from 'lucide-react';
+import { X, Cloud, CloudUpload, CloudDownload, Copy, Check, AlertCircle, Key, FileJson, Database, Link, Sparkles, Share2 } from 'lucide-react';
 import {
   uploadToCloudDetails,
   downloadFromCloudDetails,
@@ -37,14 +37,25 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copiedSkyId, setCopiedSkyId] = useState(false);
   const [copiedSql, setCopiedSql] = useState(false);
+  const [copiedMagicLink, setCopiedMagicLink] = useState(false);
 
   const activeSkyId = getActiveSkyId();
+  const currentSupabase = getSupabaseConfig();
 
   const handleCopySkyId = () => {
     if (activeSkyId) {
       navigator.clipboard.writeText(activeSkyId);
       setCopiedSkyId(true);
       setTimeout(() => setCopiedSkyId(false), 2500);
+    }
+  };
+
+  const handleCopyMagicLink = () => {
+    if (currentSupabase) {
+      const magicUrl = `https://styrke.onrender.com/?sb_url=${encodeURIComponent(currentSupabase.url)}&sb_key=${encodeURIComponent(currentSupabase.anonKey)}`;
+      navigator.clipboard.writeText(magicUrl);
+      setCopiedMagicLink(true);
+      setTimeout(() => setCopiedMagicLink(false), 2500);
     }
   };
 
@@ -175,6 +186,30 @@ create policy "Allow public access" on public.workout_sync for all using (true) 
         {/* Scrollable Body */}
         <div className="p-6 space-y-6 overflow-y-auto flex-grow">
           
+          {/* Supabase Active Notification */}
+          {currentSupabase && (
+            <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-800/80 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 text-xs font-bold text-emerald-400">
+                  <Database className="w-4 h-4" />
+                  <span>Din Supabase-database er aktiv! 🟢</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCopyMagicLink}
+                  className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-colors"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>{copiedMagicLink ? 'Lenke kopiert!' : 'Kopier hurtiglenke til Pixel'}</span>
+                </button>
+              </div>
+              <p className="text-[11px] text-emerald-200/90 leading-relaxed">
+                For å koble til Pixel-mobilen: Lim inn Supabase URL/Anon Key på Pixel, eller åpne hurtiglenken på Pixel-en én gang!
+              </p>
+            </div>
+          )}
+
           {/* Sync Code Field */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
@@ -203,7 +238,7 @@ create policy "Allow public access" on public.workout_sync for all using (true) 
               className="p-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs transition-all shadow-md shadow-blue-600/20 flex flex-col items-center justify-center space-y-2 disabled:opacity-50"
             >
               <CloudUpload className="w-6 h-6" />
-              <span>1. Last opp til skyen (fra iPhone)</span>
+              <span>1. Last opp til skyen</span>
             </button>
 
             <button
@@ -214,59 +249,6 @@ create policy "Allow public access" on public.workout_sync for all using (true) 
               <CloudDownload className="w-6 h-6 text-cyan-400" />
               <span>2. Hent fra skyen (på Pixel/PC)</span>
             </button>
-          </div>
-
-          {/* Sky-ID Direct Pairing Box */}
-          <div className="p-4 rounded-xl bg-slate-950 border border-slate-800/90 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2 text-xs font-bold text-cyan-400">
-                <Link className="w-4 h-4" />
-                <span>Direkte Sky-ID (Valgfri Manuell Paring)</span>
-              </div>
-              {activeSkyId && (
-                <button
-                  type="button"
-                  onClick={handleCopySkyId}
-                  className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs font-semibold transition-colors"
-                >
-                  {copiedSkyId ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedSkyId ? 'Kopiert!' : 'Kopier Sky-ID'}</span>
-                </button>
-              )}
-            </div>
-
-            {activeSkyId ? (
-              <div className="text-[11px] font-mono bg-slate-900 px-3 py-2 rounded-lg border border-slate-800 text-slate-300 truncate">
-                Aktiv Sky-ID: <span className="text-cyan-400 font-bold">{activeSkyId}</span>
-              </div>
-            ) : (
-              <p className="text-[11px] text-slate-400">
-                Trykk <strong>"1. Last opp til skyen"</strong> for å generere din unike Sky-ID.
-              </p>
-            )}
-
-            {/* Input to paste Sky-ID from another device */}
-            <div className="pt-2 border-t border-slate-900 space-y-2">
-              <label className="block text-[11px] font-semibold text-slate-400">
-                Lim inn Sky-ID direkte fra den andre enheten om nødvendig:
-              </label>
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  value={skyIdInput}
-                  onChange={(e) => setSkyIdInput(e.target.value)}
-                  placeholder="Lim inn Sky-ID her (f.eks. ff808181...)"
-                  className="flex-grow px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-200 focus:outline-none focus:border-blue-500"
-                />
-                <button
-                  type="button"
-                  onClick={handleConnectSkyId}
-                  className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-colors shrink-0"
-                >
-                  Koble til
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* Status Message Alert with Exact Error Info */}
@@ -295,7 +277,7 @@ create policy "Allow public access" on public.workout_sync for all using (true) 
               className="flex items-center space-x-2 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
             >
               <Database className="w-4 h-4 text-emerald-400" />
-              <span>Avansert: Bruk egen Supabase Database {getSupabaseConfig() ? '🟢 (Aktiv)' : '(Valgfritt)'}</span>
+              <span>Avansert: Bruk egen Supabase Database {currentSupabase ? '🟢 (Aktiv)' : '(Valgfritt)'}</span>
             </button>
 
             {showSupabase && (

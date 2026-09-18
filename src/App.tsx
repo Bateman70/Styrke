@@ -9,7 +9,7 @@ import { StatsOverview } from './components/dashboard/StatsOverview';
 import { LogRunModal } from './components/run/LogRunModal';
 import { AutoSchedulerModal } from './components/calendar/AutoSchedulerModal';
 import { CloudSyncModal } from './components/common/CloudSyncModal';
-import { autoSaveToCloud, autoFetchFromCloud, CloudSyncPayload } from './utils/cloudSync';
+import { autoSaveToCloud, autoFetchFromCloud, checkAndApplyUrlSupabaseConfig, CloudSyncPayload } from './utils/cloudSync';
 import { APP_VERSION, BUILD_TIME } from './constants/version';
 import { format } from 'date-fns';
 
@@ -27,8 +27,10 @@ export function App() {
   const [isAutoSchedulerOpen, setIsAutoSchedulerOpen] = useState(false);
   const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false);
 
-  // 1. Initial Load: Load local logs, then silently auto-fetch cloud data
+  // 1. Initial Load: Check for URL Supabase Config, load local logs, then silently auto-fetch cloud data
   useEffect(() => {
+    checkAndApplyUrlSupabaseConfig();
+
     const initialLogs = getStoredLogs();
     setLogs(initialLogs);
 
