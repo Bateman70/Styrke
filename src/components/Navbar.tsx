@@ -1,6 +1,7 @@
-import React from 'react';
-import { Dumbbell, Calendar as CalendarIcon, Play, BarChart2, Info, Zap, Cloud } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Dumbbell, Calendar as CalendarIcon, Play, BarChart2, Info, Zap, Cloud, RefreshCw, AlertCircle, Check } from 'lucide-react';
 import { APP_VERSION } from '../constants/version';
+import { subscribeSyncStatus, SyncStatus } from '../utils/cloudSync';
 
 interface NavbarProps {
   activeTab: 'calendar' | 'workout' | 'run' | 'stats' | 'guide';
@@ -15,9 +16,21 @@ export const Navbar: React.FC<NavbarProps> = ({
   onQuickStart,
   onOpenCloudSync,
 }) => {
+  const [syncState, setSyncState] = useState<{ status: SyncStatus; lastSyncTime: string | null }>({
+    status: 'idle',
+    lastSyncTime: null,
+  });
+
+  useEffect(() => {
+    const unsubscribe = subscribeSyncStatus((status, lastSyncTime) => {
+      setSyncState({ status, lastSyncTime });
+    });
+    return () => unsubscribe();
+  }, []);
+
   return (
     <>
-      {/* Fixed Top Navbar - Clean & Spacious */}
+      {/* Fixed Top Navbar */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-lg border-b border-slate-800/90 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -88,25 +101,56 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </nav>
 
-            {/* Quick Start Buttons - Hidden on tiny screens */}
-            <div className="hidden sm:flex items-center space-x-2 shrink-0">
+            {/* Right Header Actions: Sky-Sync Status Button & QuickStarts */}
+            <div className="flex items-center space-x-2.5 shrink-0">
+              
+              {/* Sky-Sync Button (Always visible on PC and Mobile header) */}
               <button
-                onClick={() => onQuickStart('okt-a')}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition-all flex items-center space-x-1 shadow-sm"
-                title="Start Økt A nå"
+                onClick={onOpenCloudSync}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all flex items-center space-x-1.5 shadow-sm"
+                title="Åpne Sky-Synkronisering"
               >
-                <Zap className="w-3.5 h-3.5" />
-                <span>Økt A</span>
+                {syncState.status === 'syncing' ? (
+                  <RefreshCw className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+                ) : syncState.status === 'synced' ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : syncState.status === 'error' ? (
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+                ) : (
+                  <Cloud className="w-3.5 h-3.5 text-cyan-400" />
+                )}
+                
+                <span className="hidden sm:inline">
+                  {syncState.status === 'syncing'
+                    ? 'Synkroniserer...'
+                    : syncState.status === 'synced' && syncState.lastSyncTime
+                    ? `Sky-Synk (${syncState.lastSyncTime})`
+                    : 'Sky-Synk'}
+                </span>
+                <span className="sm:hidden text-cyan-400">Sky-Synk</span>
               </button>
 
-              <button
-                onClick={() => onQuickStart('okt-b')}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 transition-all flex items-center space-x-1 shadow-sm"
-                title="Start Økt B nå"
-              >
-                <Zap className="w-3.5 h-3.5" />
-                <span>Økt B</span>
-              </button>
+              {/* Quick Start Buttons - Hidden on small mobile screens */}
+              <div className="hidden lg:flex items-center space-x-2">
+                <button
+                  onClick={() => onQuickStart('okt-a')}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition-all flex items-center space-x-1 shadow-sm"
+                  title="Start Økt A nå"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Økt A</span>
+                </button>
+
+                <button
+                  onClick={() => onQuickStart('okt-b')}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 transition-all flex items-center space-x-1 shadow-sm"
+                  title="Start Økt B nå"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Økt B</span>
+                </button>
+              </div>
+
             </div>
 
           </div>

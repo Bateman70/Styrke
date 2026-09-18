@@ -11,6 +11,39 @@ export interface CloudSyncPayload {
   scheduleConfig?: UserScheduleConfig;
 }
 
+export interface SupabaseConfig {
+  url: string;
+  anonKey: string;
+}
+
+export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
+
+let currentSyncStatus: SyncStatus = 'idle';
+let lastSyncTime: string | null = localStorage.getItem('styrke_last_cloud_sync_time');
+const statusListeners: Array<(status: SyncStatus, time: string | null) => void> = [];
+
+export function getSyncStatus(): { status: SyncStatus; lastSyncTime: string | null } {
+  return { status: currentSyncStatus, lastSyncTime };
+}
+
+export function subscribeSyncStatus(listener: (status: SyncStatus, time: string | null) => void): () => void {
+  statusListeners.push(listener);
+  listener(currentSyncStatus, lastSyncTime);
+  return () => {
+    const idx = statusListeners.indexOf(listener);
+    if (idx >= 0) statusListeners.splice(idx, 1);
+  };
+}
+
+function notifyStatus(status: SyncStatus) {
+  currentSyncStatus = status;
+  if (status === 'synced') {
+    lastSyncTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    localStorage.setItem('styrke_last_cloud_sync_time', lastSyncTime);
+  }
+  statusListeners.forEach((fn) => fn(currentSyncStatus, lastSyncTime));
+}
+
 // Get or set active device sync key
 export function getActiveSyncKey(): string {
   const stored = localStorage.getItem('styrke_app_auto_sync_key');
@@ -24,9 +57,33 @@ export function setActiveSyncKey(key: string): void {
   localStorage.setItem('styrke_app_auto_sync_key', key.trim().toLowerCase());
 }
 
-// Helper: Local storage key for storing cloud object ID
-function getObjectIdKey(code: string): string {
-  return `styrke_cloud_obj_id_${code.trim().toLowerCase()}`;
+// Get or set active Sky-ID (Cloud Object ID)
+export function getActiveSkyId(): string {
+  return localStorage.getItem('styrke_app_active_sky_id') || '';
+}
+
+export function setActiveSkyId(id: string): void {
+  localStorage.setItem('styrke_app_active_sky_id', id.trim());
+}
+
+// Get or set Supabase credentials
+export function getSupabaseConfig(): SupabaseConfig | null {
+  const url = localStorage.getItem('styrke_supabase_url');
+  const anonKey = localStorage.getItem('styrke_supabase_key');
+  if (url && anonKey && url.trim() && anonKey.trim()) {
+    return { url: url.trim(), anonKey: anonKey.trim() };
+  }
+  return null;
+}
+
+export function setSupabaseConfig(url: string, anonKey: string): void {
+  if (!url.trim() || !anonKey.trim()) {
+    localStorage.removeItem('styrke_supabase_url');
+    localStorage.removeItem('styrke_supabase_key');
+  } else {
+    localStorage.setItem('styrke_supabase_url', url.trim());
+    localStorage.setItem('styrke_supabase_key', anonKey.trim());
+  }
 }
 
 // Compact minifier to keep sync payloads tiny and ultra-fast
@@ -52,7 +109,7 @@ function minifiedLogs(logs: WorkoutLog[]): WorkoutLog[] {
   }));
 }
 
-// 1. Upload to Cloud (Seamless PUT update + automatic POST fallback if ID expired)
+// 1. Upload to Cloud (Supabase or REST API direct Sky-ID)
 export async function uploadToCloud(
   syncCode: string,
   logs: WorkoutLog[],
@@ -60,6 +117,7 @@ export async function uploadToCloud(
 ): Promise<boolean> {
   const cleanCode = syncCode.trim().toLowerCase() || DEFAULT_SYNC_KEY;
   setActiveSyncKey(cleanCode);
+  notifyStatus('syncing');
 
   const payload: CloudSyncPayload = {
     syncCode: cleanCode,
@@ -68,14 +126,45 @@ export async function uploadToCloud(
     scheduleConfig,
   };
 
-  const name = `styrke_app_${cleanCode}`;
   const stringifiedContent = JSON.stringify(payload);
-  let storedObjectId = localStorage.getItem(getObjectIdKey(cleanCode));
+
+  // Check if Supabase is configured
+  const supabase = getSupabaseConfig();
+  if (supabase) {
+    try {
+      const endpoint = `${supabase.url.replace(/\/$/, '')}/rest/v1/workout_sync`;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabase.anonKey,
+          'Authorization': `Bearer ${supabase.anonKey}`,
+          'Prefer': 'resolution=merge-duplicates',
+        },
+        body: JSON.stringify({
+          id: cleanCode,
+          payload: stringifiedContent,
+          updated_at: payload.updatedAt,
+        }),
+      });
+
+      if (res.ok) {
+        notifyStatus('synced');
+        return true;
+      }
+    } catch (err) {
+      console.error('Supabase upload error:', err);
+    }
+  }
+
+  // Fallback REST API upload
+  const name = `styrke_app_${cleanCode}`;
+  let skyId = getActiveSkyId();
 
   try {
-    // If we have an existing object ID, try updating via PUT
-    if (storedObjectId) {
-      const putRes = await fetch(`${REST_API_URL}/${storedObjectId}`, {
+    // If we already have a Sky-ID, try updating via PUT
+    if (skyId) {
+      const putRes = await fetch(`${REST_API_URL}/${skyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -85,13 +174,11 @@ export async function uploadToCloud(
       });
 
       if (putRes.ok) {
-        localStorage.setItem('styrke_last_cloud_sync_time', new Date().toISOString());
+        notifyStatus('synced');
         return true;
       }
-
-      // If PUT failed (e.g. ID expired or deleted on server), clear stale ID and create new via POST
-      localStorage.removeItem(getObjectIdKey(cleanCode));
-      localStorage.removeItem(`styrke_shared_id_${cleanCode}`);
+      // If PUT returned 404/error, clear stale Sky-ID and create new
+      setActiveSkyId('');
     }
 
     // Create new cloud object via POST
@@ -107,60 +194,75 @@ export async function uploadToCloud(
     if (postRes.ok) {
       const created = await postRes.json();
       if (created && created.id) {
-        localStorage.setItem(getObjectIdKey(cleanCode), created.id);
-        localStorage.setItem(`styrke_shared_id_${cleanCode}`, created.id);
-        localStorage.setItem('styrke_last_cloud_sync_time', new Date().toISOString());
+        setActiveSkyId(created.id);
+        notifyStatus('synced');
         return true;
       }
     }
 
+    notifyStatus('error');
     return false;
   } catch (err) {
     console.error('Cloud upload error:', err);
+    notifyStatus('error');
     return false;
   }
 }
 
-// 2. Download from Cloud (Tries stored ID, then searches by name)
+// 2. Download from Cloud (Supabase or REST API direct Sky-ID)
 export async function downloadFromCloud(syncCode: string): Promise<CloudSyncPayload | null> {
   const cleanCode = syncCode.trim().toLowerCase() || DEFAULT_SYNC_KEY;
-  let objectId = localStorage.getItem(getObjectIdKey(cleanCode)) || localStorage.getItem(`styrke_shared_id_${cleanCode}`);
+  notifyStatus('syncing');
+
+  // Check if Supabase is configured
+  const supabase = getSupabaseConfig();
+  if (supabase) {
+    try {
+      const endpoint = `${supabase.url.replace(/\/$/, '')}/rest/v1/workout_sync?id=eq.${cleanCode}&select=*`;
+      const res = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'apikey': supabase.anonKey,
+          'Authorization': `Bearer ${supabase.anonKey}`,
+        },
+      });
+
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0 && rows[0].payload) {
+          const parsed: CloudSyncPayload = typeof rows[0].payload === 'string' ? JSON.parse(rows[0].payload) : rows[0].payload;
+          notifyStatus('synced');
+          return parsed;
+        }
+      }
+    } catch (err) {
+      console.error('Supabase download error:', err);
+    }
+  }
+
+  // Fallback REST API download using Sky-ID
+  let skyId = getActiveSkyId();
 
   try {
-    if (objectId) {
-      const res = await fetch(`${REST_API_URL}/${objectId}`);
+    if (skyId) {
+      const res = await fetch(`${REST_API_URL}/${skyId}`);
       if (res.ok) {
         const json = await res.json();
         if (json && json.data && json.data.content) {
           const parsed: CloudSyncPayload = JSON.parse(json.data.content);
-          localStorage.setItem('styrke_last_cloud_sync_time', new Date().toISOString());
+          notifyStatus('synced');
           return parsed;
         }
       }
-      // Stale ID, clear it
-      localStorage.removeItem(getObjectIdKey(cleanCode));
-      localStorage.removeItem(`styrke_shared_id_${cleanCode}`);
+      // If skyId fetch returned 404, clear stale ID
+      setActiveSkyId('');
     }
 
-    // Search cloud database by app name if objectId wasn't stored locally or was stale
-    const searchRes = await fetch(REST_API_URL);
-    if (searchRes.ok) {
-      const items = await searchRes.json();
-      if (Array.isArray(items)) {
-        // Find latest object matching this sync code
-        const matched = items.reverse().find((item: any) => item.name === `styrke_app_${cleanCode}`);
-        if (matched && matched.data && matched.data.content) {
-          localStorage.setItem(getObjectIdKey(cleanCode), matched.id);
-          const parsed: CloudSyncPayload = JSON.parse(matched.data.content);
-          localStorage.setItem('styrke_last_cloud_sync_time', new Date().toISOString());
-          return parsed;
-        }
-      }
-    }
-
+    notifyStatus('error');
     return null;
   } catch (err) {
     console.error('Cloud download error:', err);
+    notifyStatus('error');
     return null;
   }
 }
