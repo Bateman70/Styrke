@@ -51,11 +51,15 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
   };
 
   const handleCopyMagicLink = () => {
-    if (currentSupabase) {
-      const magicUrl = `https://styrke.onrender.com/?sb_url=${encodeURIComponent(currentSupabase.url)}&sb_key=${encodeURIComponent(currentSupabase.anonKey)}`;
+    const targetUrl = supabaseUrl.trim() || currentSupabase?.url || '';
+    const targetKey = supabaseKey.trim() || currentSupabase?.anonKey || '';
+    if (targetUrl && targetKey) {
+      const magicUrl = `https://styrke.onrender.com/?sb_url=${encodeURIComponent(targetUrl)}&sb_key=${encodeURIComponent(targetKey)}`;
       navigator.clipboard.writeText(magicUrl);
       setCopiedMagicLink(true);
       setTimeout(() => setCopiedMagicLink(false), 2500);
+    } else {
+      setStatusMsg({ type: 'error', text: 'Legg inn Supabase URL og Anon Key først for å opprette lenken.' });
     }
   };
 
@@ -205,7 +209,7 @@ create policy "Allow public access" on public.workout_sync for all using (true) 
                 </button>
               </div>
               <p className="text-[11px] text-emerald-200/90 leading-relaxed">
-                For å koble til Pixel-mobilen: Lim inn Supabase URL/Anon Key på Pixel, eller åpne hurtiglenken på Pixel-en én gang!
+                For å koble til Pixel-mobilen: Lim inn Supabase URL/Anon Key på Pixel, eller del hurtiglenken til Pixel-en!
               </p>
             </div>
           )}
@@ -308,20 +312,33 @@ create policy "Allow public access" on public.workout_sync for all using (true) 
                   />
                 </div>
 
-                <div className="flex justify-between items-center pt-2">
-                  <button
-                    type="button"
-                    onClick={handleCopySql}
-                    className="inline-flex items-center space-x-1 text-[11px] text-cyan-400 hover:underline"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>{copiedSql ? 'SQL Kopiert!' : 'Kopier SQL-skript for Supabase'}</span>
-                  </button>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2">
+                  <div className="flex items-center space-x-3">
+                    <button
+                      type="button"
+                      onClick={handleCopySql}
+                      className="inline-flex items-center space-x-1 text-[11px] text-cyan-400 hover:underline"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{copiedSql ? 'SQL Kopiert!' : 'Kopier SQL'}</span>
+                    </button>
+
+                    {(supabaseUrl.trim() || currentSupabase) && (
+                      <button
+                        type="button"
+                        onClick={handleCopyMagicLink}
+                        className="inline-flex items-center space-x-1 text-[11px] text-emerald-400 hover:underline font-bold"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>{copiedMagicLink ? 'Lenke kopiert!' : 'Kopier hurtiglenke til Pixel'}</span>
+                      </button>
+                    )}
+                  </div>
 
                   <button
                     type="button"
                     onClick={handleSaveSupabase}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors"
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors shrink-0"
                   >
                     Lagre Supabase
                   </button>
