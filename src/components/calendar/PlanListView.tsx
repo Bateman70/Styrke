@@ -63,69 +63,80 @@ export const PlanListView: React.FC<PlanListViewProps> = ({
   return (
     <div className="space-y-8 animate-fadeIn">
       
-      {/* Filter Tabs Header */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg space-y-3">
+      {/* Filter Tabs Header - Aligned to exact user sketch (media_1789767085913.png) */}
+      <div className="bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl shadow-lg space-y-3">
         <div className="flex items-center space-x-2 text-slate-200 text-sm font-bold">
           <Filter className="w-4 h-4 text-blue-400" />
           <span>Filtrer visning:</span>
         </div>
 
-        {/* Scrollable / Flexible Pill Buttons Row */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+        {/* 2-Column Grid: Left is tall "Alle aktiviteter", Right is 2x2 grid of buttons */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-stretch">
+          
+          {/* Left Column: Alle Aktiviteter (Tall button matching total height of 2 rows) */}
           <button
             onClick={() => setFilterType('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`p-3.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex flex-col items-center justify-center text-center shadow-md ${
               filterType === 'all'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                ? 'bg-blue-600 text-white ring-2 ring-blue-400 shadow-blue-600/30'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
-            Alle aktiviteter ({allCount})
+            <span>Alle aktiviteter</span>
+            <span className="text-sm font-black opacity-90 mt-0.5">({allCount})</span>
           </button>
 
-          <button
-            onClick={() => setFilterType('strength')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-              filterType === 'strength'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Kun Styrke ({strengthCount})
-          </button>
+          {/* Right 2 Columns: 2x2 Grid of buttons (Top: Planlagte / Utførte, Bottom: Kun Styrke / Kun Løp) */}
+          <div className="sm:col-span-2 grid grid-cols-2 gap-2">
+            
+            {/* Top Row */}
+            <button
+              onClick={() => setFilterType('scheduled')}
+              className={`py-2 px-3 rounded-xl text-xs font-bold transition-all text-center ${
+                filterType === 'scheduled'
+                  ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-400'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              Planlagte ({scheduledTotalCount})
+            </button>
 
-          <button
-            onClick={() => setFilterType('run')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-              filterType === 'run'
-                ? 'bg-orange-600 text-white shadow-md'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Kun Løp ({runCount})
-          </button>
+            <button
+              onClick={() => setFilterType('completed')}
+              className={`py-2 px-3 rounded-xl text-xs font-bold transition-all text-center ${
+                filterType === 'completed'
+                  ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-400'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              Utførte ({completedTotalCount})
+            </button>
 
-          <button
-            onClick={() => setFilterType('scheduled')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-              filterType === 'scheduled'
-                ? 'bg-amber-600 text-white shadow-md'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Planlagte ({scheduledTotalCount})
-          </button>
+            {/* Bottom Row */}
+            <button
+              onClick={() => setFilterType('strength')}
+              className={`py-2 px-3 rounded-xl text-xs font-bold transition-all text-center ${
+                filterType === 'strength'
+                  ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-400'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              Kun Styrke ({strengthCount})
+            </button>
 
-          <button
-            onClick={() => setFilterType('completed')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-              filterType === 'completed'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Utførte ({completedTotalCount})
-          </button>
+            <button
+              onClick={() => setFilterType('run')}
+              className={`py-2 px-3 rounded-xl text-xs font-bold transition-all text-center ${
+                filterType === 'run'
+                  ? 'bg-orange-600 text-white shadow-md ring-2 ring-orange-400'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              Kun Løp ({runCount})
+            </button>
+
+          </div>
+
         </div>
       </div>
 

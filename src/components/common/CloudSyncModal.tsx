@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { X, Cloud, CloudUpload, CloudDownload, Copy, Check, AlertCircle, Key, FileJson, Database, Link, Sparkles } from 'lucide-react';
 import {
-  uploadToCloud,
-  downloadFromCloud,
+  uploadToCloudDetails,
+  downloadFromCloudDetails,
   CloudSyncPayload,
   getActiveSkyId,
   setActiveSkyId,
@@ -56,7 +56,7 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
     setActiveSkyId(skyIdInput.trim());
     setStatusMsg({
       type: 'success',
-      text: 'Sky-ID er koblet til! Trykk "2. Hent fra skyen" for å synkronisere denne enheten.',
+      text: 'Sky-ID er koblet til! Trykk "2. Hent fra skyen" for å hente alle dataene dine.',
     });
   };
 
@@ -79,22 +79,20 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
     setStatusMsg(null);
 
     setActiveSyncKey(syncCode);
-    const success = await uploadToCloud(syncCode, logs, scheduleConfig);
+    const result = await uploadToCloudDetails(syncCode, logs, scheduleConfig);
     setLoading(false);
 
-    if (success) {
+    if (result.success) {
       const newSkyId = getActiveSkyId();
       setSkyIdInput(newSkyId);
       setStatusMsg({
         type: 'success',
-        text: `Data lagret i skyen! ${
-          newSkyId ? 'Kopier din Sky-ID og lim inn på PC-en din for automatisk toveissynk.' : ''
-        }`,
+        text: result.message,
       });
     } else {
       setStatusMsg({
         type: 'error',
-        text: 'Kunne ikke laste opp til skyen. Sjekk internettforbindelsen og prøv igjen.',
+        text: result.message,
       });
     }
   };
@@ -108,19 +106,19 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
     setStatusMsg(null);
 
     setActiveSyncKey(syncCode);
-    const payload = await downloadFromCloud(syncCode);
+    const result = await downloadFromCloudDetails(syncCode);
     setLoading(false);
 
-    if (payload && payload.logs && payload.logs.length >= 0) {
-      onApplyCloudData(payload);
+    if (result.success && result.payload && Array.isArray(result.payload.logs)) {
+      onApplyCloudData(result.payload);
       setStatusMsg({
         type: 'success',
-        text: `Hentet ${payload.logs.length} økter fra skyen! Enhetene dine er nå synkronisert.`,
+        text: result.message,
       });
     } else {
       setStatusMsg({
         type: 'error',
-        text: `Fant ingen data i skyen for koden "${syncCode.trim()}". Husk å laste opp fra mobilen eller lim inn Sky-ID først!`,
+        text: result.message,
       });
     }
   };
@@ -163,7 +161,7 @@ create policy "Allow public access" on public.workout_sync for all using (true) 
             </div>
             <div>
               <h3 className="text-lg font-bold text-slate-100">Sky-Synkronisering</h3>
-              <p className="text-xs text-slate-400">Mobil & PC Automatisk Toveissynk</p>
+              <p className="text-xs text-slate-400">Mobil (iPhone/Pixel) & PC Toveissynk</p>
             </div>
           </div>
           <button
@@ -180,7 +178,7 @@ create policy "Allow public access" on public.workout_sync for all using (true) 
           {/* Sync Code Field */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-              Synkroniseringsnavn
+              Synkroniseringsnavn / Kode
             </label>
             <div className="relative">
               <input
@@ -192,6 +190,30 @@ create policy "Allow public access" on public.workout_sync for all using (true) 
               />
               <Key className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
             </div>
+            <p className="text-[11px] text-slate-400 mt-1.5">
+              Bruk samme kode (f.eks. <strong>styrke55</strong>) på både iPhone, Pixel og PC.
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={handleUpload}
+              disabled={loading}
+              className="p-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs transition-all shadow-md shadow-blue-600/20 flex flex-col items-center justify-center space-y-2 disabled:opacity-50"
+            >
+              <CloudUpload className="w-6 h-6" />
+              <span>1. Last opp til skyen (fra iPhone)</span>
+            </button>
+
+            <button
+              onClick={handleDownload}
+              disabled={loading}
+              className="p-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-xs border border-slate-700 transition-all flex flex-col items-center justify-center space-y-2 disabled:opacity-50"
+            >
+              <CloudDownload className="w-6 h-6 text-cyan-400" />
+              <span>2. Hent fra skyen (på Pixel/PC)</span>
+            </button>
           </div>
 
           {/* Sky-ID Direct Pairing Box */}
@@ -199,7 +221,7 @@ create policy "Allow public access" on public.workout_sync for all using (true) 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2 text-xs font-bold text-cyan-400">
                 <Link className="w-4 h-4" />
-                <span>Direkte Sky-ID Paring (Sømløs synk)</span>
+                <span>Direkte Sky-ID (Valgfri Manuell Paring)</span>
               </div>
               {activeSkyId && (
                 <button
@@ -215,18 +237,18 @@ create policy "Allow public access" on public.workout_sync for all using (true) 
 
             {activeSkyId ? (
               <div className="text-[11px] font-mono bg-slate-900 px-3 py-2 rounded-lg border border-slate-800 text-slate-300 truncate">
-                Sky-ID: <span className="text-cyan-400 font-bold">{activeSkyId}</span>
+                Aktiv Sky-ID: <span className="text-cyan-400 font-bold">{activeSkyId}</span>
               </div>
             ) : (
               <p className="text-[11px] text-slate-400">
-                Trykk <strong>"1. Last opp til skyen"</strong> for å generere din unike Sky-ID for denne enheten.
+                Trykk <strong>"1. Last opp til skyen"</strong> for å generere din unike Sky-ID.
               </p>
             )}
 
             {/* Input to paste Sky-ID from another device */}
             <div className="pt-2 border-t border-slate-900 space-y-2">
               <label className="block text-[11px] font-semibold text-slate-400">
-                Koble til Sky-ID fra den andre enheten (PC/Mobil):
+                Lim inn Sky-ID direkte fra den andre enheten om nødvendig:
               </label>
               <div className="flex space-x-2">
                 <input
@@ -247,28 +269,7 @@ create policy "Allow public access" on public.workout_sync for all using (true) 
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={handleUpload}
-              disabled={loading}
-              className="p-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs transition-all shadow-md shadow-blue-600/20 flex flex-col items-center justify-center space-y-2 disabled:opacity-50"
-            >
-              <CloudUpload className="w-6 h-6" />
-              <span>1. Last opp til skyen</span>
-            </button>
-
-            <button
-              onClick={handleDownload}
-              disabled={loading}
-              className="p-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-xs border border-slate-700 transition-all flex flex-col items-center justify-center space-y-2 disabled:opacity-50"
-            >
-              <CloudDownload className="w-6 h-6 text-cyan-400" />
-              <span>2. Hent fra skyen</span>
-            </button>
-          </div>
-
-          {/* Status Message Alert */}
+          {/* Status Message Alert with Exact Error Info */}
           {statusMsg && (
             <div
               className={`p-3.5 rounded-xl border text-xs leading-relaxed flex items-start space-x-2.5 ${
@@ -300,7 +301,7 @@ create policy "Allow public access" on public.workout_sync for all using (true) 
             {showSupabase && (
               <div className="mt-3 p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3 animate-fadeIn">
                 <p className="text-[11px] text-slate-400">
-                  Dersom du har et eksisterende Supabase-prosjekt, kan du opprette tabellen <code>workout_sync</code> og legge inn URL og Anon Key her:
+                  Dersom du har et Supabase-prosjekt, kan du opprette tabellen <code>workout_sync</code> og legge inn URL og Anon Key her:
                 </p>
 
                 <div>

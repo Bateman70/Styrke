@@ -19,6 +19,12 @@ export interface SupabaseConfig {
 
 export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
 
+export interface SyncResult {
+  success: boolean;
+  message: string;
+  payload?: CloudSyncPayload;
+}
+
 let currentSyncStatus: SyncStatus = 'idle';
 let lastSyncTime: string | null = localStorage.getItem('styrke_last_cloud_sync_time');
 const statusListeners: Array<(status: SyncStatus, time: string | null) => void> = [];
@@ -46,18 +52,22 @@ function notifyStatus(status: SyncStatus) {
 }
 
 // Global registry lookup & update helpers
-async function registerGlobalSkyId(syncCode: string, skyId: string): Promise<void> {
+async function registerGlobalSkyId(syncCode: string, skyId: string): Promise<boolean> {
   try {
     const res = await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}`);
     let registry: Record<string, string> = {};
     if (res.ok) {
       const json = await res.json();
       if (json && json.data && json.data.registry) {
-        registry = JSON.parse(json.data.registry);
+        try {
+          registry = JSON.parse(json.data.registry);
+        } catch (e) {
+          registry = {};
+        }
       }
     }
     registry[syncCode.trim().toLowerCase()] = skyId;
-    await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}`, {
+    const putRes = await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -65,8 +75,10 @@ async function registerGlobalSkyId(syncCode: string, skyId: string): Promise<voi
         data: { registry: JSON.stringify(registry) },
       }),
     });
+    return putRes.ok;
   } catch (err) {
     console.error('Error updating global registry:', err);
+    return false;
   }
 }
 
@@ -131,6 +143,7 @@ export function setSupabaseConfig(url: string, anonKey: string): void {
 
 // Compact minifier to keep sync payloads tiny and ultra-fast
 function minifiedLogs(logs: WorkoutLog[]): WorkoutLog[] {
+  if (!Array.isArray(logs)) return [];
   return logs.map((log) => ({
     id: log.id,
     date: log.date,
@@ -152,12 +165,12 @@ function minifiedLogs(logs: WorkoutLog[]): WorkoutLog[] {
   }));
 }
 
-// 1. Upload to Cloud (Supabase or REST API direct Sky-ID + Global Registry)
-export async function uploadToCloud(
+// 1. Upload to Cloud with Detailed Diagnostic Result
+export async function uploadToCloudDetails(
   syncCode: string,
   logs: WorkoutLog[],
   scheduleConfig?: UserScheduleConfig
-): Promise<boolean> {
+): Promise<SyncResult> {
   const cleanCode = syncCode.trim().toLowerCase() || DEFAULT_SYNC_KEY;
   setActiveSyncKey(cleanCode);
   notifyStatus('syncing');
@@ -193,10 +206,16 @@ export async function uploadToCloud(
 
       if (res.ok) {
         notifyStatus('synced');
-        return true;
+        return { success: true, message: `Lagret ${logs.length} økter i Supabase DB!` };
+      } else {
+        const errText = await res.text();
+        notifyStatus('error');
+        return { success: false, message: `Supabase DB feil (${res.status}): ${errText.slice(0, 100)}` };
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Supabase upload error:', err);
+      notifyStatus('error');
+      return { success: false, message: `Supabase tilkoblingsfeil: ${err.message || err}` };
     }
   }
 
@@ -219,9 +238,12 @@ export async function uploadToCloud(
       if (putRes.ok) {
         await registerGlobalSkyId(cleanCode, skyId);
         notifyStatus('synced');
-        return true;
+        return {
+          success: true,
+          message: `Lastet opp ${logs.length} økter til skyen! (Sky-ID: ${skyId.slice(0, 8)}...)`,
+        };
       }
-      // If PUT returned 404/error, clear stale Sky-ID and create new
+      // If PUT returned error, clear stale Sky-ID and create new via POST
       setActiveSkyId('');
     }
 
@@ -241,21 +263,30 @@ export async function uploadToCloud(
         setActiveSkyId(created.id);
         await registerGlobalSkyId(cleanCode, created.id);
         notifyStatus('synced');
-        return true;
+        return {
+          success: true,
+          message: `Opprettet ny sky-enhet med ${logs.length} økter! (Sky-ID: ${created.id.slice(0, 8)}...)`,
+        };
       }
     }
 
     notifyStatus('error');
-    return false;
-  } catch (err) {
+    return {
+      success: false,
+      message: `Skytjener svarte med status ${postRes.status}. Vennligst prøv igjen om et øyeblikk.`,
+    };
+  } catch (err: any) {
     console.error('Cloud upload error:', err);
     notifyStatus('error');
-    return false;
+    return {
+      success: false,
+      message: `Tilkoblingsfeil (${err.name || 'NetworkError'}): Kunne ikke nå ${REST_API_URL}. Sjekk nettverket ditt.`,
+    };
   }
 }
 
-// 2. Download from Cloud (Supabase or REST API with automatic Registry Lookup)
-export async function downloadFromCloud(syncCode: string): Promise<CloudSyncPayload | null> {
+// 2. Download from Cloud with Detailed Diagnostic Result
+export async function downloadFromCloudDetails(syncCode: string): Promise<SyncResult> {
   const cleanCode = syncCode.trim().toLowerCase() || DEFAULT_SYNC_KEY;
   notifyStatus('syncing');
 
@@ -277,10 +308,16 @@ export async function downloadFromCloud(syncCode: string): Promise<CloudSyncPayl
         if (Array.isArray(rows) && rows.length > 0 && rows[0].payload) {
           const parsed: CloudSyncPayload = typeof rows[0].payload === 'string' ? JSON.parse(rows[0].payload) : rows[0].payload;
           notifyStatus('synced');
-          return parsed;
+          return {
+            success: true,
+            message: `Hentet ${parsed.logs?.length || 0} økter fra Supabase DB!`,
+            payload: parsed,
+          };
         }
+        notifyStatus('error');
+        return { success: false, message: `Fant ingen oppføring i Supabase for koden "${cleanCode}".` };
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Supabase download error:', err);
     }
   }
@@ -304,7 +341,11 @@ export async function downloadFromCloud(syncCode: string): Promise<CloudSyncPayl
         if (json && json.data && json.data.content) {
           const parsed: CloudSyncPayload = JSON.parse(json.data.content);
           notifyStatus('synced');
-          return parsed;
+          return {
+            success: true,
+            message: `Hentet ${parsed.logs?.length || 0} økter fra skyen!`,
+            payload: parsed,
+          };
         }
       }
       // If skyId fetch returned 404, try global registry lookup once more
@@ -317,23 +358,46 @@ export async function downloadFromCloud(syncCode: string): Promise<CloudSyncPayl
           if (json && json.data && json.data.content) {
             const parsed: CloudSyncPayload = JSON.parse(json.data.content);
             notifyStatus('synced');
-            return parsed;
+            return {
+              success: true,
+              message: `Hentet ${parsed.logs?.length || 0} økter fra sky-registeret!`,
+              payload: parsed,
+            };
           }
         }
       }
-      setActiveSkyId('');
     }
 
     notifyStatus('error');
-    return null;
-  } catch (err) {
+    return {
+      success: false,
+      message: `Fant ingen lagret data i skyen for koden "${cleanCode}". Husk å trykke "1. Last opp til skyen" på mobilen (iPhone) først!`,
+    };
+  } catch (err: any) {
     console.error('Cloud download error:', err);
     notifyStatus('error');
-    return null;
+    return {
+      success: false,
+      message: `Tilkoblingsfeil (${err.name || 'NetworkError'}): Sjekk at mobilen har dekning eller wifi.`,
+    };
   }
 }
 
-// Automatic silent background sync wrappers
+// Simple wrappers
+export async function uploadToCloud(
+  syncCode: string,
+  logs: WorkoutLog[],
+  scheduleConfig?: UserScheduleConfig
+): Promise<boolean> {
+  const res = await uploadToCloudDetails(syncCode, logs, scheduleConfig);
+  return res.success;
+}
+
+export async function downloadFromCloud(syncCode: string): Promise<CloudSyncPayload | null> {
+  const res = await downloadFromCloudDetails(syncCode);
+  return res.payload || null;
+}
+
 export async function autoSaveToCloud(logs: WorkoutLog[], scheduleConfig?: UserScheduleConfig): Promise<boolean> {
   const syncKey = getActiveSyncKey();
   return uploadToCloud(syncKey, logs, scheduleConfig);
