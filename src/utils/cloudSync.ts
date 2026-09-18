@@ -52,7 +52,7 @@ function minifiedLogs(logs: WorkoutLog[]): WorkoutLog[] {
   }));
 }
 
-// 1. Upload to Cloud (Guaranteed stringified JSON data format)
+// 1. Upload to Cloud (Seamless PUT update + automatic POST fallback if ID expired)
 export async function uploadToCloud(
   syncCode: string,
   logs: WorkoutLog[],
@@ -70,10 +70,10 @@ export async function uploadToCloud(
 
   const name = `styrke_app_${cleanCode}`;
   const stringifiedContent = JSON.stringify(payload);
-  const storedObjectId = localStorage.getItem(getObjectIdKey(cleanCode));
+  let storedObjectId = localStorage.getItem(getObjectIdKey(cleanCode));
 
   try {
-    // If we have an existing object ID, update via PUT
+    // If we have an existing object ID, try updating via PUT
     if (storedObjectId) {
       const putRes = await fetch(`${REST_API_URL}/${storedObjectId}`, {
         method: 'PUT',
@@ -85,11 +85,16 @@ export async function uploadToCloud(
       });
 
       if (putRes.ok) {
+        localStorage.setItem('styrke_last_cloud_sync_time', new Date().toISOString());
         return true;
       }
+
+      // If PUT failed (e.g. ID expired or deleted on server), clear stale ID and create new via POST
+      localStorage.removeItem(getObjectIdKey(cleanCode));
+      localStorage.removeItem(`styrke_shared_id_${cleanCode}`);
     }
 
-    // Otherwise create new cloud object via POST
+    // Create new cloud object via POST
     const postRes = await fetch(REST_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -104,6 +109,7 @@ export async function uploadToCloud(
       if (created && created.id) {
         localStorage.setItem(getObjectIdKey(cleanCode), created.id);
         localStorage.setItem(`styrke_shared_id_${cleanCode}`, created.id);
+        localStorage.setItem('styrke_last_cloud_sync_time', new Date().toISOString());
         return true;
       }
     }
@@ -115,10 +121,10 @@ export async function uploadToCloud(
   }
 }
 
-// 2. Download from Cloud
+// 2. Download from Cloud (Tries stored ID, then searches by name)
 export async function downloadFromCloud(syncCode: string): Promise<CloudSyncPayload | null> {
   const cleanCode = syncCode.trim().toLowerCase() || DEFAULT_SYNC_KEY;
-  const objectId = localStorage.getItem(getObjectIdKey(cleanCode)) || localStorage.getItem(`styrke_shared_id_${cleanCode}`);
+  let objectId = localStorage.getItem(getObjectIdKey(cleanCode)) || localStorage.getItem(`styrke_shared_id_${cleanCode}`);
 
   try {
     if (objectId) {
@@ -127,20 +133,26 @@ export async function downloadFromCloud(syncCode: string): Promise<CloudSyncPayl
         const json = await res.json();
         if (json && json.data && json.data.content) {
           const parsed: CloudSyncPayload = JSON.parse(json.data.content);
+          localStorage.setItem('styrke_last_cloud_sync_time', new Date().toISOString());
           return parsed;
         }
       }
+      // Stale ID, clear it
+      localStorage.removeItem(getObjectIdKey(cleanCode));
+      localStorage.removeItem(`styrke_shared_id_${cleanCode}`);
     }
 
-    // Search cloud database if objectId wasn't stored locally
+    // Search cloud database by app name if objectId wasn't stored locally or was stale
     const searchRes = await fetch(REST_API_URL);
     if (searchRes.ok) {
       const items = await searchRes.json();
       if (Array.isArray(items)) {
-        const matched = items.find((item: any) => item.name === `styrke_app_${cleanCode}`);
+        // Find latest object matching this sync code
+        const matched = items.reverse().find((item: any) => item.name === `styrke_app_${cleanCode}`);
         if (matched && matched.data && matched.data.content) {
           localStorage.setItem(getObjectIdKey(cleanCode), matched.id);
           const parsed: CloudSyncPayload = JSON.parse(matched.data.content);
+          localStorage.setItem('styrke_last_cloud_sync_time', new Date().toISOString());
           return parsed;
         }
       }
