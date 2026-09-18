@@ -55,6 +55,14 @@ function isValidSkyId(id: string): boolean {
   return typeof id === 'string' && /^[a-f0-9]{32}$/i.test(id.trim());
 }
 
+function cleanSupabaseUrl(url: string): string {
+  if (!url) return '';
+  let cleaned = url.trim().replace(/\/$/, '');
+  // Strip trailing /rest/v1 if the user copied the full PostgREST endpoint from Supabase dashboard
+  cleaned = cleaned.replace(/\/rest\/v1\/?$/i, '');
+  return cleaned;
+}
+
 // Global registry lookup & update helpers
 async function registerGlobalSkyId(syncCode: string, skyId: string): Promise<boolean> {
   try {
@@ -137,7 +145,7 @@ export function getSupabaseConfig(): SupabaseConfig | null {
   const url = localStorage.getItem('styrke_supabase_url');
   const anonKey = localStorage.getItem('styrke_supabase_key');
   if (url && anonKey && url.trim() && anonKey.trim()) {
-    return { url: url.trim(), anonKey: anonKey.trim() };
+    return { url: cleanSupabaseUrl(url), anonKey: anonKey.trim() };
   }
   return null;
 }
@@ -147,7 +155,7 @@ export function setSupabaseConfig(url: string, anonKey: string): void {
     localStorage.removeItem('styrke_supabase_url');
     localStorage.removeItem('styrke_supabase_key');
   } else {
-    localStorage.setItem('styrke_supabase_url', url.trim());
+    localStorage.setItem('styrke_supabase_url', cleanSupabaseUrl(url));
     localStorage.setItem('styrke_supabase_key', anonKey.trim());
   }
 }
@@ -199,7 +207,7 @@ export async function uploadToCloudDetails(
   const supabase = getSupabaseConfig();
   if (supabase) {
     try {
-      const endpoint = `${supabase.url.replace(/\/$/, '')}/rest/v1/workout_sync`;
+      const endpoint = `${supabase.url}/rest/v1/workout_sync`;
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -217,10 +225,16 @@ export async function uploadToCloudDetails(
 
       if (res.ok) {
         notifyStatus('synced');
-        return { success: true, message: `Lagret ${logs.length} økter i Supabase DB!` };
+        return { success: true, message: `Suksess! Lagret ${logs.length} økter i din Supabase database!` };
       } else {
         const errText = await res.text();
         notifyStatus('error');
+        if (res.status === 404 || errText.includes('PGRST125') || errText.includes('relation "public.workout_sync" does not exist')) {
+          return {
+            success: false,
+            message: `Supabase Feil (404): Tabellen "workout_sync" finnes ikke i Supabase ennå. Husk å kjøre SQL-skriptet i SQL Editor i Supabase!`,
+          };
+        }
         return { success: false, message: `Supabase DB feil (${res.status}): ${errText.slice(0, 100)}` };
       }
     } catch (err: any) {
@@ -254,7 +268,6 @@ export async function uploadToCloudDetails(
           message: `Lastet opp ${logs.length} økter til skyen! (Sky-ID: ${skyId.slice(0, 8)}...)`,
         };
       }
-      // Clear invalid/expired ID
       setActiveSkyId('');
     }
 
@@ -291,7 +304,7 @@ export async function uploadToCloudDetails(
     notifyStatus('error');
     return {
       success: false,
-      message: `Tilkoblingsfeil (${err.name || 'NetworkError'}): Kunne ikke nå ${REST_API_URL}. Sjekk at du har dekning.`,
+      message: `Tilkoblingsfeil (${err.name || 'NetworkError'}): Sjekk at du har dekning.`,
     };
   }
 }
@@ -305,7 +318,7 @@ export async function downloadFromCloudDetails(syncCode: string): Promise<SyncRe
   const supabase = getSupabaseConfig();
   if (supabase) {
     try {
-      const endpoint = `${supabase.url.replace(/\/$/, '')}/rest/v1/workout_sync?id=eq.${cleanCode}&select=*`;
+      const endpoint = `${supabase.url}/rest/v1/workout_sync?id=eq.${cleanCode}&select=*`;
       const res = await fetch(endpoint, {
         method: 'GET',
         headers: {
@@ -321,12 +334,22 @@ export async function downloadFromCloudDetails(syncCode: string): Promise<SyncRe
           notifyStatus('synced');
           return {
             success: true,
-            message: `Hentet ${parsed.logs?.length || 0} økter fra Supabase DB!`,
+            message: `Suksess! Hentet ${parsed.logs?.length || 0} økter fra din Supabase DB!`,
             payload: parsed,
           };
         }
         notifyStatus('error');
-        return { success: false, message: `Fant ingen oppføring i Supabase for koden "${cleanCode}".` };
+        return { success: false, message: `Fant ingen oppføring i Supabase for koden "${cleanCode}". Trykk "1. Last opp" først!` };
+      } else {
+        const errText = await res.text();
+        notifyStatus('error');
+        if (res.status === 404 || errText.includes('PGRST125') || errText.includes('relation "public.workout_sync" does not exist')) {
+          return {
+            success: false,
+            message: `Supabase Feil (404): Tabellen "workout_sync" finnes ikke i Supabase ennå. Husk å kjøre SQL-skriptet i SQL Editor i Supabase!`,
+          };
+        }
+        return { success: false, message: `Supabase feil (${res.status}): ${errText.slice(0, 100)}` };
       }
     } catch (err: any) {
       console.error('Supabase download error:', err);
