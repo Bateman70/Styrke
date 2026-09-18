@@ -51,9 +51,14 @@ function notifyStatus(status: SyncStatus) {
   statusListeners.forEach((fn) => fn(currentSyncStatus, lastSyncTime));
 }
 
+function isValidSkyId(id: string): boolean {
+  return typeof id === 'string' && /^[a-f0-9]{32}$/i.test(id.trim());
+}
+
 // Global registry lookup & update helpers
 async function registerGlobalSkyId(syncCode: string, skyId: string): Promise<boolean> {
   try {
+    const cleanKey = syncCode.trim().toLowerCase();
     const res = await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}`);
     let registry: Record<string, string> = {};
     if (res.ok) {
@@ -66,7 +71,7 @@ async function registerGlobalSkyId(syncCode: string, skyId: string): Promise<boo
         }
       }
     }
-    registry[syncCode.trim().toLowerCase()] = skyId;
+    registry[cleanKey] = skyId;
     const putRes = await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -84,12 +89,13 @@ async function registerGlobalSkyId(syncCode: string, skyId: string): Promise<boo
 
 async function lookupGlobalSkyId(syncCode: string): Promise<string | null> {
   try {
+    const cleanKey = syncCode.trim().toLowerCase();
     const res = await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}`);
     if (res.ok) {
       const json = await res.json();
       if (json && json.data && json.data.registry) {
         const registry: Record<string, string> = JSON.parse(json.data.registry);
-        return registry[syncCode.trim().toLowerCase()] || null;
+        return registry[cleanKey] || null;
       }
     }
     return null;
@@ -114,11 +120,16 @@ export function setActiveSyncKey(key: string): void {
 
 // Get or set active Sky-ID (Cloud Object ID)
 export function getActiveSkyId(): string {
-  return localStorage.getItem('styrke_app_active_sky_id') || '';
+  const id = localStorage.getItem('styrke_app_active_sky_id') || '';
+  return isValidSkyId(id) ? id.trim() : '';
 }
 
 export function setActiveSkyId(id: string): void {
-  localStorage.setItem('styrke_app_active_sky_id', id.trim());
+  if (isValidSkyId(id)) {
+    localStorage.setItem('styrke_app_active_sky_id', id.trim());
+  } else {
+    localStorage.removeItem('styrke_app_active_sky_id');
+  }
 }
 
 // Get or set Supabase credentials
@@ -224,8 +235,8 @@ export async function uploadToCloudDetails(
   let skyId = getActiveSkyId();
 
   try {
-    // If we already have a Sky-ID, try updating via PUT
-    if (skyId) {
+    // ONLY try PUT if skyId is a valid 32-character hex ID
+    if (isValidSkyId(skyId)) {
       const putRes = await fetch(`${REST_API_URL}/${skyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -243,7 +254,7 @@ export async function uploadToCloudDetails(
           message: `Lastet opp ${logs.length} økter til skyen! (Sky-ID: ${skyId.slice(0, 8)}...)`,
         };
       }
-      // If PUT returned error, clear stale Sky-ID and create new via POST
+      // Clear invalid/expired ID
       setActiveSkyId('');
     }
 
@@ -265,7 +276,7 @@ export async function uploadToCloudDetails(
         notifyStatus('synced');
         return {
           success: true,
-          message: `Opprettet ny sky-enhet med ${logs.length} økter! (Sky-ID: ${created.id.slice(0, 8)}...)`,
+          message: `Lastet opp ${logs.length} økter til skyen! Koden "${cleanCode}" er samkjørt!`,
         };
       }
     }
@@ -273,14 +284,14 @@ export async function uploadToCloudDetails(
     notifyStatus('error');
     return {
       success: false,
-      message: `Skytjener svarte med status ${postRes.status}. Vennligst prøv igjen om et øyeblikk.`,
+      message: `Skytjener feilet med status ${postRes.status}. Vennligst prøv igjen om et øyeblikk.`,
     };
   } catch (err: any) {
     console.error('Cloud upload error:', err);
     notifyStatus('error');
     return {
       success: false,
-      message: `Tilkoblingsfeil (${err.name || 'NetworkError'}): Kunne ikke nå ${REST_API_URL}. Sjekk nettverket ditt.`,
+      message: `Tilkoblingsfeil (${err.name || 'NetworkError'}): Kunne ikke nå ${REST_API_URL}. Sjekk at du har dekning.`,
     };
   }
 }
@@ -325,16 +336,16 @@ export async function downloadFromCloudDetails(syncCode: string): Promise<SyncRe
   // Fallback REST API download using Sky-ID or Global Registry lookup
   let skyId = getActiveSkyId();
 
-  if (!skyId) {
+  if (!isValidSkyId(skyId)) {
     const foundId = await lookupGlobalSkyId(cleanCode);
-    if (foundId) {
+    if (foundId && isValidSkyId(foundId)) {
       skyId = foundId;
       setActiveSkyId(foundId);
     }
   }
 
   try {
-    if (skyId) {
+    if (isValidSkyId(skyId)) {
       const res = await fetch(`${REST_API_URL}/${skyId}`);
       if (res.ok) {
         const json = await res.json();
@@ -350,7 +361,26 @@ export async function downloadFromCloudDetails(syncCode: string): Promise<SyncRe
       }
       // If skyId fetch returned 404, try global registry lookup once more
       const foundId = await lookupGlobalSkyId(cleanCode);
-      if (foundId && foundId !== skyId) {
+      if (foundId && isValidSkyId(foundId) && foundId !== skyId) {
+        setActiveSkyId(foundId);
+        const retryRes = await fetch(`${REST_API_URL}/${foundId}`);
+        if (retryRes.ok) {
+          const json = await retryRes.json();
+          if (json && json.data && json.data.content) {
+            const parsed: CloudSyncPayload = JSON.parse(json.data.content);
+            notifyStatus('synced');
+            return {
+              success: true,
+              message: `Hentet ${parsed.logs?.length || 0} økter fra sky-registeret!`,
+              payload: parsed,
+            };
+          }
+        }
+      }
+    } else {
+      // Try lookup once more
+      const foundId = await lookupGlobalSkyId(cleanCode);
+      if (foundId && isValidSkyId(foundId)) {
         setActiveSkyId(foundId);
         const retryRes = await fetch(`${REST_API_URL}/${foundId}`);
         if (retryRes.ok) {
@@ -371,14 +401,14 @@ export async function downloadFromCloudDetails(syncCode: string): Promise<SyncRe
     notifyStatus('error');
     return {
       success: false,
-      message: `Fant ingen lagret data i skyen for koden "${cleanCode}". Husk å trykke "1. Last opp til skyen" på mobilen (iPhone) først!`,
+      message: `Fant ingen lagret data i skyen for koden "${cleanCode}". Trykk "1. Last opp til skyen" på iPhone først!`,
     };
   } catch (err: any) {
     console.error('Cloud download error:', err);
     notifyStatus('error');
     return {
       success: false,
-      message: `Tilkoblingsfeil (${err.name || 'NetworkError'}): Sjekk at mobilen har dekning eller wifi.`,
+      message: `Tilkoblingsfeil (${err.name || 'NetworkError'}): Sjekk internettforbindelsen på mobilen.`,
     };
   }
 }
