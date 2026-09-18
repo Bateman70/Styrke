@@ -69,14 +69,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
       
-      {/* Top View Toggle & Controls */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+      {/* Top View Toggle & Controls - Fully responsive for iPhone & mobile viewports */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 overflow-hidden">
         
         {/* Sub-nav Mode Toggle */}
         <div className="flex items-center space-x-1 bg-slate-950 p-1.5 rounded-xl border border-slate-800 w-full md:w-auto justify-center">
           <button
             onClick={() => setViewMode('grid')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all flex-1 md:flex-none ${
               viewMode === 'grid'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200'
@@ -88,7 +88,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
           <button
             onClick={() => setViewMode('list')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 rounded-lg text-xs font-bold transition-all flex-1 md:flex-none ${
               viewMode === 'list'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200'
@@ -99,10 +99,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           </button>
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center space-x-2 w-full md:w-auto justify-between md:justify-end">
+        {/* Controls: Month Selector & Auto Schedule Button */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto justify-between md:justify-end">
           {viewMode === 'grid' && (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-center space-x-2 w-full sm:w-auto">
               <button
                 onClick={prevMonth}
                 className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
@@ -111,7 +111,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 <ChevronLeft className="w-4 h-4" />
               </button>
               
-              <span className="font-bold text-sm text-slate-200 capitalize min-w-[110px] text-center">
+              <span className="font-bold text-sm text-slate-200 capitalize min-w-[120px] text-center">
                 {format(currentMonth, 'MMMM yyyy', { locale: nb })}
               </span>
 
@@ -125,10 +125,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             </div>
           )}
 
-          {/* Auto Schedule Button */}
+          {/* Auto Schedule Button - w-full on tiny screens, w-auto on desktop */}
           <button
             onClick={onOpenAutoScheduler}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold text-xs transition-all shadow-md shadow-blue-600/20 flex items-center space-x-1.5 shrink-0"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold text-xs transition-all shadow-md shadow-blue-600/20 flex items-center justify-center space-x-1.5 shrink-0"
           >
             <Sparkles className="w-4 h-4" />
             <span>Generer ukesplan</span>
