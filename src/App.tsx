@@ -10,6 +10,7 @@ import { LogRunModal } from './components/run/LogRunModal';
 import { AutoSchedulerModal } from './components/calendar/AutoSchedulerModal';
 import { CloudSyncModal } from './components/common/CloudSyncModal';
 import { autoSaveToCloud, autoFetchFromCloud, CloudSyncPayload } from './utils/cloudSync';
+import { APP_VERSION, BUILD_TIME } from './constants/version';
 import { format } from 'date-fns';
 
 export function App() {
@@ -67,7 +68,7 @@ export function App() {
     setLogs(updatedLogs);
     saveStoredLogs(updatedLogs);
     
-    // Automatic silent cloud save (No manual clicks needed!)
+    // Automatic silent cloud save
     autoSaveToCloud(updatedLogs);
   };
 
@@ -141,7 +142,7 @@ export function App() {
       />
 
       {/* Main View Area with padding for fixed bars */}
-      <main className="flex-grow pt-20 pb-20 md:pb-8">
+      <main className="flex-grow pt-20 pb-24 md:pb-12">
         {activeTab === 'calendar' && (
           <CalendarView
             logs={logs}
@@ -166,11 +167,13 @@ export function App() {
         {activeTab === 'guide' && <ProgramGuideView />}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-slate-900/60 border-t border-slate-800/80 py-4 text-center text-xs text-slate-500 hidden md:block">
+      {/* Footer with App Version & Build Time */}
+      <footer className="bg-slate-900/80 border-t border-slate-800/80 py-4 text-center text-xs text-slate-400">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>Styrketreningsprogram for Løpere (55 år) • Automatisk Sky-Synkronisert Web App</span>
-          <span>Bygget med React, TypeScript & Tailwind CSS</span>
+          <span>Styrketreningsprogram for Løpere (55 år) • Web App</span>
+          <span className="font-mono text-[11px] text-blue-400 bg-blue-950/60 px-2.5 py-1 rounded-full border border-blue-800/40">
+            Versjon {APP_VERSION} ({BUILD_TIME})
+          </span>
         </div>
       </footer>
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Dumbbell, Calendar as CalendarIcon, Play, BarChart2, Info, Zap, Cloud } from 'lucide-react';
+import { APP_VERSION } from '../constants/version';
 
 interface NavbarProps {
   activeTab: 'calendar' | 'workout' | 'run' | 'stats' | 'guide';
@@ -21,7 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             
-            {/* Logo */}
+            {/* Logo + Version Badge */}
             <div className="flex items-center space-x-3 cursor-pointer shrink-0" onClick={() => setActiveTab('calendar')}>
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
                 <Dumbbell className="w-6 h-6 text-white transform -rotate-12" />
@@ -30,8 +31,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="font-extrabold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
                   Styrke & Løp
                 </span>
-                <span className="hidden sm:inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                  Løper 55+
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                  {APP_VERSION}
                 </span>
               </div>
             </div>
@@ -47,7 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
               >
                 <CalendarIcon className="w-4 h-4" />
-                <span>Kalender</span>
+                <span>Kalender & Plan</span>
               </button>
 
               <button
@@ -87,7 +88,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </nav>
 
-            {/* Quick Start Buttons - Hidden on tiny screens to avoid header crowding */}
+            {/* Quick Start Buttons - Hidden on tiny screens */}
             <div className="hidden sm:flex items-center space-x-2 shrink-0">
               <button
                 onClick={() => onQuickStart('okt-a')}
