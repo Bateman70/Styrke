@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Dumbbell, Calendar as CalendarIcon, Play, BarChart2, Info, Zap, Cloud, RefreshCw, AlertCircle, Check } from 'lucide-react';
 import { APP_VERSION } from '../constants/version';
 import { subscribeSyncStatus, SyncStatus } from '../utils/cloudSync';
+import { WorkoutType } from '../types/workout';
 
 interface NavbarProps {
   activeTab: 'calendar' | 'workout' | 'run' | 'stats' | 'guide';
   setActiveTab: (tab: 'calendar' | 'workout' | 'run' | 'stats' | 'guide') => void;
-  onQuickStart: (type: 'okt-a' | 'okt-b') => void;
+  onQuickStart: (type: WorkoutType) => void;
   onOpenCloudSync: () => void;
 }
 
@@ -148,6 +149,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <Zap className="w-3.5 h-3.5" />
                   <span>Økt B</span>
+                </button>
+
+                <button
+                  onClick={() => onQuickStart('fri-okt')}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border border-purple-500/30 transition-all flex items-center space-x-1 shadow-sm"
+                  title="Start Fri-økt nå"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Fri-økt</span>
                 </button>
               </div>
 

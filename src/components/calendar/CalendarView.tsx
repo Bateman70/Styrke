@@ -235,6 +235,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           );
                         }
 
+                        if (log.type === 'fri-okt') {
+                          return (
+                            <div
+                              key={log.id}
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold flex items-center justify-between truncate ${
+                                isCompleted
+                                  ? 'bg-purple-500 text-slate-950 font-black'
+                                  : 'bg-purple-950/60 text-purple-300 border border-purple-800/50'
+                              }`}
+                            >
+                              <span className="truncate">Fri-økt</span>
+                              {isCompleted ? <CheckCircle2 className="w-3 h-3 text-slate-950 shrink-0 ml-1" /> : <Clock className="w-3 h-3 text-purple-400 shrink-0 ml-1" />}
+                            </div>
+                          );
+                        }
+
                         if (log.type === 'lop') {
                           return (
                             <div
@@ -277,25 +293,29 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   selectedDayLogs.map((log) => {
                     const isCompleted = log.status === 'completed';
 
-                    if (log.type === 'okt-a' || log.type === 'okt-b') {
+                    if (log.type === 'okt-a' || log.type === 'okt-b' || log.type === 'fri-okt') {
                       const program = WORKOUT_PROGRAMS[log.type];
+                      const badgeLabel = log.type === 'okt-a' ? 'Økt A' : log.type === 'okt-b' ? 'Økt B' : 'Fri-økt';
+                      const badgeColor = log.type === 'okt-a' ? 'bg-emerald-500/20 text-emerald-400' : log.type === 'okt-b' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-purple-500/20 text-purple-400';
 
                       return (
                         <div
                           key={log.id}
                           className={`p-4 rounded-xl border transition-all ${
                             isCompleted
-                              ? 'bg-emerald-950/20 border-emerald-800/60 text-emerald-200'
+                              ? log.type === 'fri-okt'
+                                ? 'bg-purple-950/20 border-purple-800/60 text-purple-200'
+                                : 'bg-emerald-950/20 border-emerald-800/60 text-emerald-200'
                               : 'bg-slate-950/60 border-slate-800 text-slate-200'
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
                             <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                               isCompleted
-                                ? 'bg-emerald-500 text-slate-950 font-black'
-                                : log.type === 'okt-a' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-indigo-500/20 text-indigo-400'
+                                ? log.type === 'fri-okt' ? 'bg-purple-500 text-slate-950 font-black' : 'bg-emerald-500 text-slate-950 font-black'
+                                : badgeColor
                             }`}>
-                              {log.type === 'okt-a' ? 'Økt A' : 'Økt B'} {isCompleted ? '✓ Fullført' : ''}
+                              {badgeLabel} {isCompleted ? '✓ Fullført' : ''}
                             </span>
 
                             <button
@@ -389,10 +409,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 Legg til på valgt dato:
               </span>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
                   onClick={() => onStartWorkout('okt-a', selectedDate)}
-                  className="py-2 px-2 bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/50 rounded-xl text-xs font-semibold transition-all flex flex-col items-center justify-center"
+                  className="py-2 px-1.5 bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/50 rounded-xl text-xs font-semibold transition-all flex flex-col items-center justify-center"
                 >
                   <Plus className="w-3.5 h-3.5 mb-0.5" />
                   <span>Økt A</span>
@@ -400,15 +420,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
                 <button
                   onClick={() => onStartWorkout('okt-b', selectedDate)}
-                  className="py-2 px-2 bg-indigo-950/40 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-800/50 rounded-xl text-xs font-semibold transition-all flex flex-col items-center justify-center"
+                  className="py-2 px-1.5 bg-indigo-950/40 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-800/50 rounded-xl text-xs font-semibold transition-all flex flex-col items-center justify-center"
                 >
                   <Plus className="w-3.5 h-3.5 mb-0.5" />
                   <span>Økt B</span>
                 </button>
 
                 <button
+                  onClick={() => onStartWorkout('fri-okt', selectedDate)}
+                  className="py-2 px-1.5 bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 border border-purple-800/50 rounded-xl text-xs font-semibold transition-all flex flex-col items-center justify-center"
+                >
+                  <Plus className="w-3.5 h-3.5 mb-0.5" />
+                  <span>Fri-økt</span>
+                </button>
+
+                <button
                   onClick={() => onLogRun(selectedDate)}
-                  className="py-2 px-2 bg-orange-950/40 hover:bg-orange-900/60 text-orange-300 border border-orange-800/50 rounded-xl text-xs font-semibold transition-all flex flex-col items-center justify-center"
+                  className="py-2 px-1.5 bg-orange-950/40 hover:bg-orange-900/60 text-orange-300 border border-orange-800/50 rounded-xl text-xs font-semibold transition-all flex flex-col items-center justify-center"
                 >
                   <Flame className="w-3.5 h-3.5 mb-0.5" />
                   <span>Løp</span>

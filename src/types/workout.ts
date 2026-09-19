@@ -1,17 +1,17 @@
-export type WorkoutType = 'okt-a' | 'okt-b' | 'lop';
+export type WorkoutType = 'okt-a' | 'okt-b' | 'lop' | 'fri-okt';
 export type WorkoutStatus = 'scheduled' | 'completed' | 'skipped';
 
 export interface Exercise {
   id: string;
   name: string;
-  category: 'Warm-up' | 'Main' | 'Superset 1' | 'Superset 2';
-  groupLabel?: string; // e.g., "A1", "A2", "B1", "B2"
+  category: 'Warm-up' | 'Main' | 'Superset 1' | 'Superset 2' | 'Custom';
+  groupLabel?: string; // e.g., "A1", "A2", "B1", "B2", "Friøvelse"
   defaultSets: number;
   defaultReps: string; // e.g. "8–10" or "30–45 sek"
   restSeconds: number; // e.g. 90, 45, 30
-  focus: string; // Instructions / focus points from PDF
-  videoUrl: string; // YouTube embed / watch URL
-  videoTitle: string;
+  focus: string; // Instructions / focus points
+  videoUrl?: string; // YouTube embed / watch URL
+  videoTitle?: string;
   videoThumb?: string;
   isPerSide?: boolean;
 }

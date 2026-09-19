@@ -10,7 +10,7 @@ interface VideoModalProps {
 export const VideoModal: React.FC<VideoModalProps> = ({ exercise, onClose }) => {
   if (!exercise) return null;
 
-  const directYoutubeUrl = exercise.videoUrl.replace('/embed/', '/watch?v=');
+  const directYoutubeUrl = exercise.videoUrl ? exercise.videoUrl.replace('/embed/', '/watch?v=') : '#';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
@@ -41,29 +41,33 @@ export const VideoModal: React.FC<VideoModalProps> = ({ exercise, onClose }) => 
         <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
           
           {/* Direct YouTube link fallback button if browser blocks inline player */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs">
-            <span className="text-slate-400">Teknikkvideo for øvelsen:</span>
-            <a
-              href={directYoutubeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 font-semibold transition-all"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>Åpne direkte i YouTube</span>
-            </a>
-          </div>
+          {exercise.videoUrl && (
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+              <span className="text-slate-400">Teknikkvideo for øvelsen:</span>
+              <a
+                href={directYoutubeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 font-semibold transition-all"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Åpne direkte i YouTube</span>
+              </a>
+            </div>
+          )}
 
           {/* Responsive Video Embed */}
-          <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner">
-            <iframe
-              src={exercise.videoUrl}
-              title={exercise.videoTitle}
-              className="absolute inset-0 w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          </div>
+          {exercise.videoUrl && (
+            <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner">
+              <iframe
+                src={exercise.videoUrl}
+                title={exercise.videoTitle || exercise.name}
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          )}
 
           {/* PDF Focus Points Card */}
           <div className="bg-slate-950/60 rounded-xl p-4 border border-slate-800/80 space-y-3">

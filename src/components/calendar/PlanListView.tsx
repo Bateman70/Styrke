@@ -34,14 +34,14 @@ export const PlanListView: React.FC<PlanListViewProps> = ({
 
   // Counts for filter tabs
   const allCount = logs.length;
-  const strengthCount = logs.filter((l) => l.type === 'okt-a' || l.type === 'okt-b').length;
+  const strengthCount = logs.filter((l) => l.type === 'okt-a' || l.type === 'okt-b' || l.type === 'fri-okt').length;
   const runCount = logs.filter((l) => l.type === 'lop').length;
   const scheduledTotalCount = logs.filter((l) => l.status === 'scheduled').length;
   const completedTotalCount = logs.filter((l) => l.status === 'completed').length;
 
   // Filter logs based on active filter button
   const filteredLogs = logs.filter((log) => {
-    if (filterType === 'strength') return log.type === 'okt-a' || log.type === 'okt-b';
+    if (filterType === 'strength') return log.type === 'okt-a' || log.type === 'okt-b' || log.type === 'fri-okt';
     if (filterType === 'run') return log.type === 'lop';
     if (filterType === 'scheduled') return log.status === 'scheduled';
     if (filterType === 'completed') return log.status === 'completed';
@@ -169,8 +169,14 @@ export const PlanListView: React.FC<PlanListViewProps> = ({
               {scheduledLogs.map((log) => {
                 const isTodayDate = log.date === format(new Date(), 'yyyy-MM-dd');
 
-                if (log.type === 'okt-a' || log.type === 'okt-b') {
+                if (log.type === 'okt-a' || log.type === 'okt-b' || log.type === 'fri-okt') {
                   const program = WORKOUT_PROGRAMS[log.type];
+                  const badgeLabel = log.type === 'okt-a' ? 'Økt A' : log.type === 'okt-b' ? 'Økt B' : 'Fri-økt';
+                  const badgeColor = log.type === 'okt-a'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : log.type === 'okt-b'
+                    ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                    : 'bg-purple-500/20 text-purple-400 border border-purple-500/30';
 
                   return (
                     <div
@@ -183,12 +189,8 @@ export const PlanListView: React.FC<PlanListViewProps> = ({
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <span className={`px-2.5 py-1 rounded-lg text-xs font-extrabold tracking-wide uppercase ${
-                            log.type === 'okt-a'
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
-                          }`}>
-                            {log.type === 'okt-a' ? 'Økt A' : 'Økt B'}
+                          <span className={`px-2.5 py-1 rounded-lg text-xs font-extrabold tracking-wide uppercase ${badgeColor}`}>
+                            {badgeLabel}
                           </span>
                           {isTodayDate && (
                             <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold text-[10px] animate-pulse">
@@ -314,18 +316,26 @@ export const PlanListView: React.FC<PlanListViewProps> = ({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {completedLogs.map((log) => {
-                if (log.type === 'okt-a' || log.type === 'okt-b') {
+                if (log.type === 'okt-a' || log.type === 'okt-b' || log.type === 'fri-okt') {
                   const program = WORKOUT_PROGRAMS[log.type];
+                  const badgeLabel = log.type === 'okt-a' ? 'Økt A Fullført' : log.type === 'okt-b' ? 'Økt B Fullført' : 'Fri-økt Fullført';
+                  const cardBg = log.type === 'fri-okt'
+                    ? 'bg-purple-950/20 border-purple-800/40 text-purple-200'
+                    : 'bg-emerald-950/20 border-emerald-800/40 text-emerald-200';
+                  const badgeStyle = log.type === 'fri-okt'
+                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                  const badgeIcon = log.type === 'fri-okt' ? 'text-purple-400' : 'text-emerald-400';
 
                   return (
                     <div
                       key={log.id}
-                      className="p-5 rounded-2xl border bg-emerald-950/20 border-emerald-800/40 text-emerald-200 shadow-md space-y-3"
+                      className={`p-5 rounded-2xl border shadow-md space-y-3 ${cardBg}`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center space-x-1">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>{log.type === 'okt-a' ? 'Økt A Fullført' : 'Økt B Fullført'}</span>
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-extrabold flex items-center space-x-1 ${badgeStyle}`}>
+                          <CheckCircle2 className={`w-3.5 h-3.5 ${badgeIcon}`} />
+                          <span>{badgeLabel}</span>
                         </span>
 
                         <button
@@ -340,19 +350,25 @@ export const PlanListView: React.FC<PlanListViewProps> = ({
                       <div>
                         <h4 className="font-extrabold text-base text-slate-100">{program.title}</h4>
                         <p className="text-xs text-slate-400 mt-1 flex items-center space-x-1">
-                          <CalendarIcon className="w-3.5 h-3.5 text-emerald-400" />
+                          <CalendarIcon className={`w-3.5 h-3.5 ${badgeIcon}`} />
                           <span>Fullført: {format(new Date(log.date), 'EEEE d. MMMM yyyy', { locale: nb })}</span>
                         </p>
                       </div>
 
                       {log.notes && (
-                        <p className="text-xs text-emerald-300/90 italic bg-slate-950/50 p-2.5 rounded-xl border border-emerald-900/30">
+                        <p className={`text-xs italic bg-slate-950/50 p-2.5 rounded-xl border ${
+                          log.type === 'fri-okt' ? 'text-purple-300/90 border-purple-900/30' : 'text-emerald-300/90 border-emerald-900/30'
+                        }`}>
                           "{log.notes}"
                         </p>
                       )}
 
-                      <div className="pt-3 border-t border-emerald-900/40 flex items-center justify-between">
-                        <span className="text-xs font-bold text-emerald-400 flex items-center space-x-1">
+                      <div className={`pt-3 border-t flex items-center justify-between ${
+                        log.type === 'fri-okt' ? 'border-purple-900/40' : 'border-emerald-900/40'
+                      }`}>
+                        <span className={`text-xs font-bold flex items-center space-x-1 ${
+                          log.type === 'fri-okt' ? 'text-purple-400' : 'text-emerald-400'
+                        }`}>
                           <CheckCircle2 className="w-4 h-4" />
                           <span>Fullført & Loggført</span>
                         </span>
