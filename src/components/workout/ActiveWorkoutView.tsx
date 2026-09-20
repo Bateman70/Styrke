@@ -484,8 +484,14 @@ export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
 
       {/* Add Extra Exercise Modal Popup */}
       {isAddExerciseOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl p-6 space-y-5">
+        <div
+          onClick={() => setIsAddExerciseOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn cursor-pointer"
+        >
+          <div
+            className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl p-6 space-y-5 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2 text-slate-100 font-bold text-lg">
                 <Sparkles className="w-5 h-5 text-blue-400" />

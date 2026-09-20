@@ -43,7 +43,10 @@ export const AutoSchedulerModal: React.FC<AutoSchedulerModalProps> = ({ onGenera
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn cursor-pointer"
+    >
       
       {/* Date Picker Popup */}
       {isDatePickerOpen && (
@@ -56,7 +59,7 @@ export const AutoSchedulerModal: React.FC<AutoSchedulerModalProps> = ({ onGenera
       )}
 
       <div
-        className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl"
+        className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

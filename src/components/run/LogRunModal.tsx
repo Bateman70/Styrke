@@ -48,7 +48,10 @@ export const LogRunModal: React.FC<LogRunModalProps> = ({ date: initialDate, exi
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn cursor-pointer"
+    >
       
       {/* Date Picker Modal */}
       {isDatePickerOpen && (
@@ -61,7 +64,7 @@ export const LogRunModal: React.FC<LogRunModalProps> = ({ date: initialDate, exi
       )}
 
       <div
-        className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl"
+        className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

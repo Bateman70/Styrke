@@ -9,6 +9,7 @@ import { StatsOverview } from './components/dashboard/StatsOverview';
 import { LogRunModal } from './components/run/LogRunModal';
 import { AutoSchedulerModal } from './components/calendar/AutoSchedulerModal';
 import { CloudSyncModal } from './components/common/CloudSyncModal';
+import { WhatsNewModal } from './components/common/WhatsNewModal';
 import { autoSaveToCloud, autoFetchFromCloud, checkAndApplyUrlSupabaseConfig, CloudSyncPayload } from './utils/cloudSync';
 import { APP_VERSION, BUILD_TIME } from './constants/version';
 import { format } from 'date-fns';
@@ -26,6 +27,7 @@ export function App() {
   const [runModalData, setRunModalData] = useState<{ date: string; existingLog?: WorkoutLog } | null>(null);
   const [isAutoSchedulerOpen, setIsAutoSchedulerOpen] = useState(false);
   const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false);
+  const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
 
   // 1. Initial Load: Check for URL Supabase Config, load local logs, then silently auto-fetch cloud data
   useEffect(() => {
@@ -33,6 +35,12 @@ export function App() {
 
     const initialLogs = getStoredLogs();
     setLogs(initialLogs);
+
+    // Check if user has seen current version news popup
+    const seenVersion = localStorage.getItem('styrke_seen_version');
+    if (seenVersion !== APP_VERSION) {
+      setIsWhatsNewOpen(true);
+    }
 
     // Silent background fetch from cloud
     autoFetchFromCloud().then((cloudData) => {
@@ -43,6 +51,11 @@ export function App() {
       isFirstLoad.current = false;
     });
   }, []);
+
+  const handleCloseWhatsNew = () => {
+    localStorage.setItem('styrke_seen_version', APP_VERSION);
+    setIsWhatsNewOpen(false);
+  };
 
   // 2. Auto-fetch on window focus / tab switch
   useEffect(() => {
@@ -173,11 +186,20 @@ export function App() {
       <footer className="bg-slate-900/80 border-t border-slate-800/80 py-4 text-center text-xs text-slate-400">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>Styrketreningsprogram for Løpere (55 år) • Web App</span>
-          <span className="font-mono text-[11px] text-blue-400 bg-blue-950/60 px-2.5 py-1 rounded-full border border-blue-800/40">
-            Versjon {APP_VERSION} ({BUILD_TIME})
-          </span>
+          <button
+            onClick={() => setIsWhatsNewOpen(true)}
+            className="font-mono text-[11px] text-blue-400 hover:text-blue-300 bg-blue-950/60 hover:bg-blue-900/80 px-2.5 py-1 rounded-full border border-blue-800/40 transition-colors cursor-pointer flex items-center space-x-1"
+            title="Klikk for å se nyheter i versjonen"
+          >
+            <span>Versjon {APP_VERSION} ({BUILD_TIME}) — Nyheter</span>
+          </button>
         </div>
       </footer>
+
+      {/* What's New Release Modal */}
+      {isWhatsNewOpen && (
+        <WhatsNewModal onClose={handleCloseWhatsNew} />
+      )}
 
       {/* Run Logging Modal */}
       {runModalData && (
