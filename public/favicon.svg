@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="appGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Deep Dark Slate Background -->
+  <rect width="512" height="512" fill="#020617" />
+  
+  <!-- Gradient Badge Rounded Rectangle -->
+  <rect x="64" y="64" width="384" height="384" rx="112" ry="112" fill="url(#appGradient)" />
+  
+  <!-- Dumbbell Icon Rotated 12 Degrees -->
+  <g transform="translate(256 256) rotate(12) translate(-256 -256)">
+    <!-- Central Bar -->
+    <rect x="156" y="242" width="200" height="28" rx="8" fill="#ffffff" />
+    
+    <!-- Left Inner Plate -->
+    <rect x="186" y="181" width="34" height="150" rx="12" fill="#ffffff" />
+    
+    <!-- Left Outer Plate -->
+    <rect x="150" y="201" width="30" height="110" rx="10" fill="#ffffff" />
+    
+    <!-- Right Inner Plate -->
+    <rect x="292" y="181" width="34" height="150" rx="12" fill="#ffffff" />
+    
+    <!-- Right Outer Plate -->
+    <rect x="332" y="201" width="30" height="110" rx="10" fill="#ffffff" />
+  </g>
+</svg>
