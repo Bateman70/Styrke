@@ -161,6 +161,11 @@ export function setActiveSkyId(id: string): void {
   }
 }
 
+const DEFAULT_SUPABASE: SupabaseConfig = {
+  url: 'https://fmxtmzmrwvdfiptbeypb.supabase.co',
+  anonKey: 'sb_publishable_jC0SdVWhiZJ15_GTEnJ40w_Kn5Ce6ve',
+};
+
 // Get or set Supabase credentials
 export function getSupabaseConfig(): SupabaseConfig | null {
   const url = localStorage.getItem('styrke_supabase_url');
@@ -168,7 +173,7 @@ export function getSupabaseConfig(): SupabaseConfig | null {
   if (url && anonKey && url.trim() && anonKey.trim()) {
     return { url: cleanSupabaseUrl(url), anonKey: anonKey.trim() };
   }
-  return null;
+  return DEFAULT_SUPABASE;
 }
 
 export function setSupabaseConfig(url: string, anonKey: string): void {
