@@ -1,9 +1,9 @@
 import { WorkoutLog, UserScheduleConfig } from '../types/workout';
 
 // 100% Reliable CORS-enabled Cloud REST API
-const REST_API_URL = 'https://api.restful-api.dev/objects';
+const REST_API_URL = 'https://api.jsonbin.io/v3/b';
 const DEFAULT_SYNC_KEY = 'styrke55';
-const GLOBAL_REGISTRY_ID = 'ff808181a09d98f701a0b65d03ee399f';
+const GLOBAL_REGISTRY_ID = '68fff7591e35ca5679c6d5cf';
 
 export interface CloudSyncPayload {
   syncCode: string;
@@ -52,7 +52,7 @@ function notifyStatus(status: SyncStatus) {
 }
 
 function isValidSkyId(id: string): boolean {
-  return typeof id === 'string' && /^[a-f0-9]{32}$/i.test(id.trim());
+  return typeof id === 'string' && /^[a-f0-9]{24,32}$/i.test(id.trim());
 }
 
 function cleanSupabaseUrl(url: string): string {
@@ -86,13 +86,14 @@ export function checkAndApplyUrlSupabaseConfig(): boolean {
 async function registerGlobalSkyId(syncCode: string, skyId: string): Promise<boolean> {
   try {
     const cleanKey = syncCode.trim().toLowerCase();
-    const res = await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}`);
+    const res = await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}/latest`);
     let registry: Record<string, string> = {};
     if (res.ok) {
       const json = await res.json();
-      if (json && json.data && json.data.registry) {
+      if (json && json.record) {
         try {
-          registry = JSON.parse(json.data.registry);
+          const rawReg = typeof json.record === 'string' ? json.record : json.record.registry;
+          registry = typeof rawReg === 'string' ? JSON.parse(rawReg) : rawReg || {};
         } catch (e) {
           registry = {};
         }
@@ -103,8 +104,7 @@ async function registerGlobalSkyId(syncCode: string, skyId: string): Promise<boo
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: 'styrke_global_registry_index_v1',
-        data: { registry: JSON.stringify(registry) },
+        registry: JSON.stringify(registry),
       }),
     });
     return putRes.ok;
@@ -117,11 +117,12 @@ async function registerGlobalSkyId(syncCode: string, skyId: string): Promise<boo
 async function lookupGlobalSkyId(syncCode: string): Promise<string | null> {
   try {
     const cleanKey = syncCode.trim().toLowerCase();
-    const res = await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}`);
+    const res = await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}/latest`);
     if (res.ok) {
       const json = await res.json();
-      if (json && json.data && json.data.registry) {
-        const registry: Record<string, string> = JSON.parse(json.data.registry);
+      if (json && json.record) {
+        const rawReg = typeof json.record === 'string' ? json.record : json.record.registry;
+        const registry: Record<string, string> = typeof rawReg === 'string' ? JSON.parse(rawReg) : rawReg || {};
         return registry[cleanKey] || null;
       }
     }
@@ -264,18 +265,16 @@ export async function uploadToCloudDetails(
   }
 
   // Fallback REST API upload
-  const name = `styrke_app_${cleanCode}`;
   let skyId = getActiveSkyId();
 
   try {
-    // ONLY try PUT if skyId is a valid 32-character hex ID
     if (isValidSkyId(skyId)) {
       const putRes = await fetch(`${REST_API_URL}/${skyId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name,
-          data: { content: stringifiedContent },
+          syncCode: cleanCode,
+          content: stringifiedContent,
         }),
       });
 
@@ -293,18 +292,22 @@ export async function uploadToCloudDetails(
     // Create new cloud object via POST
     const postRes = await fetch(REST_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Bin-Private': 'false',
+      },
       body: JSON.stringify({
-        name,
-        data: { content: stringifiedContent },
+        syncCode: cleanCode,
+        content: stringifiedContent,
       }),
     });
 
     if (postRes.ok) {
       const created = await postRes.json();
-      if (created && created.id) {
-        setActiveSkyId(created.id);
-        await registerGlobalSkyId(cleanCode, created.id);
+      const newId = created?.metadata?.id || created?.id;
+      if (newId) {
+        setActiveSkyId(newId);
+        await registerGlobalSkyId(cleanCode, newId);
         notifyStatus('synced');
         return {
           success: true,
@@ -386,56 +389,49 @@ export async function downloadFromCloudDetails(syncCode: string): Promise<SyncRe
     }
   }
 
+  const parseRecordPayload = (json: any): CloudSyncPayload | null => {
+    if (!json) return null;
+    const raw = json.record?.content || json.record?.data?.content || json.data?.content || json.record;
+    if (!raw) return null;
+    try {
+      return typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch (e) {
+      return null;
+    }
+  };
+
   try {
     if (isValidSkyId(skyId)) {
-      const res = await fetch(`${REST_API_URL}/${skyId}`);
+      const res = await fetch(`${REST_API_URL}/${skyId}/latest`);
       if (res.ok) {
         const json = await res.json();
-        if (json && json.data && json.data.content) {
-          const parsed: CloudSyncPayload = JSON.parse(json.data.content);
+        const parsed = parseRecordPayload(json);
+        if (parsed && Array.isArray(parsed.logs)) {
           notifyStatus('synced');
           return {
             success: true,
-            message: `Hentet ${parsed.logs?.length || 0} økter fra skyen!`,
+            message: `Hentet ${parsed.logs.length} økter fra skyen!`,
             payload: parsed,
           };
         }
       }
-      // If skyId fetch returned 404, try global registry lookup once more
-      const foundId = await lookupGlobalSkyId(cleanCode);
-      if (foundId && isValidSkyId(foundId) && foundId !== skyId) {
-        setActiveSkyId(foundId);
-        const retryRes = await fetch(`${REST_API_URL}/${foundId}`);
-        if (retryRes.ok) {
-          const json = await retryRes.json();
-          if (json && json.data && json.data.content) {
-            const parsed: CloudSyncPayload = JSON.parse(json.data.content);
-            notifyStatus('synced');
-            return {
-              success: true,
-              message: `Hentet ${parsed.logs?.length || 0} økter fra sky-registeret!`,
-              payload: parsed,
-            };
-          }
-        }
-      }
-    } else {
-      // Try lookup once more
-      const foundId = await lookupGlobalSkyId(cleanCode);
-      if (foundId && isValidSkyId(foundId)) {
-        setActiveSkyId(foundId);
-        const retryRes = await fetch(`${REST_API_URL}/${foundId}`);
-        if (retryRes.ok) {
-          const json = await retryRes.json();
-          if (json && json.data && json.data.content) {
-            const parsed: CloudSyncPayload = JSON.parse(json.data.content);
-            notifyStatus('synced');
-            return {
-              success: true,
-              message: `Hentet ${parsed.logs?.length || 0} økter fra sky-registeret!`,
-              payload: parsed,
-            };
-          }
+    }
+
+    // Try lookup once more
+    const foundId = await lookupGlobalSkyId(cleanCode);
+    if (foundId && isValidSkyId(foundId)) {
+      setActiveSkyId(foundId);
+      const retryRes = await fetch(`${REST_API_URL}/${foundId}/latest`);
+      if (retryRes.ok) {
+        const json = await retryRes.json();
+        const parsed = parseRecordPayload(json);
+        if (parsed && Array.isArray(parsed.logs)) {
+          notifyStatus('synced');
+          return {
+            success: true,
+            message: `Hentet ${parsed.logs.length} økter fra sky-registeret!`,
+            payload: parsed,
+          };
         }
       }
     }
@@ -443,7 +439,7 @@ export async function downloadFromCloudDetails(syncCode: string): Promise<SyncRe
     notifyStatus('error');
     return {
       success: false,
-      message: `Fant ingen lagret data i skyen for koden "${cleanCode}". Trykk "1. Last opp til skyen" på iPhone først!`,
+      message: `Fant ingen lagret data i skyen for koden "${cleanCode}". Trykk "1. Last opp til skyen" først!`,
     };
   } catch (err: any) {
     console.error('Cloud download error:', err);

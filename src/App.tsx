@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { WorkoutLog, WorkoutType } from './types/workout';
-import { getStoredLogs, saveStoredLogs, generateAutoSchedule } from './utils/storage';
+import { getStoredLogs, saveStoredLogs, generateAutoSchedule, mergeWorkoutLogs } from './utils/storage';
 import { Navbar } from './components/Navbar';
 import { CalendarView } from './components/calendar/CalendarView';
 import { ActiveWorkoutView } from './components/workout/ActiveWorkoutView';
@@ -45,8 +45,10 @@ export function App() {
     // Silent background fetch from cloud
     autoFetchFromCloud().then((cloudData) => {
       if (cloudData && cloudData.logs && cloudData.logs.length > 0) {
-        setLogs(cloudData.logs);
-        saveStoredLogs(cloudData.logs);
+        const currentLocal = getStoredLogs();
+        const merged = mergeWorkoutLogs(currentLocal, cloudData.logs);
+        setLogs(merged);
+        saveStoredLogs(merged);
       }
       isFirstLoad.current = false;
     });
@@ -62,8 +64,10 @@ export function App() {
     const handleFocus = () => {
       autoFetchFromCloud().then((cloudData) => {
         if (cloudData && cloudData.logs && cloudData.logs.length > 0) {
-          setLogs(cloudData.logs);
-          saveStoredLogs(cloudData.logs);
+          const currentLocal = getStoredLogs();
+          const merged = mergeWorkoutLogs(currentLocal, cloudData.logs);
+          setLogs(merged);
+          saveStoredLogs(merged);
         }
       });
     };
@@ -140,7 +144,9 @@ export function App() {
   // Apply downloaded Cloud Sync data from modal
   const handleApplyCloudData = (payload: CloudSyncPayload) => {
     if (payload.logs) {
-      handleSaveLogs(payload.logs);
+      const currentLocal = getStoredLogs();
+      const merged = mergeWorkoutLogs(currentLocal, payload.logs);
+      handleSaveLogs(merged);
       setActiveTab('calendar');
     }
   };

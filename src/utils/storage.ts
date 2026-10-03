@@ -22,9 +22,51 @@ export const getStoredLogs = (): WorkoutLog[] => {
 export const saveStoredLogs = (logs: WorkoutLog[]): void => {
   try {
     localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(logs));
+    localStorage.setItem('styrke_app_local_updated_at', new Date().toISOString());
   } catch (err) {
     console.error('Failed to save logs to localStorage', err);
   }
+};
+
+// Smart log merger to ensure user-created schedules and cloud logs never overwrite each other
+export const mergeWorkoutLogs = (localLogs: WorkoutLog[], incomingLogs: WorkoutLog[]): WorkoutLog[] => {
+  if (!Array.isArray(incomingLogs) || incomingLogs.length === 0) return localLogs || [];
+  if (!Array.isArray(localLogs) || localLogs.length === 0) return incomingLogs;
+
+  const map = new Map<string, WorkoutLog>();
+
+  // 1. Add all local logs
+  localLogs.forEach((l) => {
+    if (l && l.id) map.set(l.id, l);
+  });
+
+  // 2. Safely merge incoming logs
+  incomingLogs.forEach((inc) => {
+    if (!inc || !inc.id) return;
+
+    const existing = map.get(inc.id);
+    if (!existing) {
+      map.set(inc.id, inc);
+    } else {
+      // Keep completed log over scheduled log
+      if (inc.status === 'completed' && existing.status !== 'completed') {
+        map.set(inc.id, inc);
+      } else if (existing.status === 'completed' && inc.status !== 'completed') {
+        // Keep existing completed log
+      } else {
+        const existingDetailCount = (existing.exercises?.length || 0) + (existing.notes ? 1 : 0);
+        const incomingDetailCount = (inc.exercises?.length || 0) + (inc.notes ? 1 : 0);
+
+        if (incomingDetailCount >= existingDetailCount) {
+          map.set(inc.id, inc);
+        }
+      }
+    }
+  });
+
+  const merged = Array.from(map.values());
+  merged.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return merged;
 };
 
 // Load schedule config
