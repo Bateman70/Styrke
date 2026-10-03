@@ -240,13 +240,16 @@ export async function uploadToCloudDetails(
     });
 
     if (nativeRes.ok) {
-      const json = await nativeRes.json();
-      if (json && json.success) {
-        notifyStatus('synced');
-        return {
-          success: true,
-          message: json.message || `Lastet opp ${logs.length} økter til skyen! Koden "${cleanCode}" er samkjørt!`,
-        };
+      const text = await nativeRes.text();
+      if (text && text.trim().startsWith('{')) {
+        const json = JSON.parse(text);
+        if (json && json.success) {
+          notifyStatus('synced');
+          return {
+            success: true,
+            message: json.message || `Lastet opp ${logs.length} økter til skyen! Koden "${cleanCode}" er samkjørt!`,
+          };
+        }
       }
     }
   } catch (err) {
@@ -377,28 +380,24 @@ export async function downloadFromCloudDetails(syncCode: string): Promise<SyncRe
   try {
     const nativeRes = await fetch(`/api/sync/${encodeURIComponent(cleanCode)}`);
     if (nativeRes.ok) {
-      const json = await nativeRes.json();
-      if (json && json.success && Array.isArray(json.logs)) {
-        notifyStatus('synced');
-        return {
-          success: true,
-          message: `Hentet ${json.logs.length} økter fra skyen for koden "${cleanCode}"!`,
-          payload: {
-            syncCode: cleanCode,
-            updatedAt: json.updatedAt,
-            logs: json.logs,
-            scheduleConfig: json.scheduleConfig,
-            userProfile: json.userProfile,
-          },
-        };
+      const text = await nativeRes.text();
+      if (text && text.trim().startsWith('{')) {
+        const json = JSON.parse(text);
+        if (json && json.success && Array.isArray(json.logs)) {
+          notifyStatus('synced');
+          return {
+            success: true,
+            message: `Hentet ${json.logs.length} økter fra skyen for koden "${cleanCode}"!`,
+            payload: {
+              syncCode: cleanCode,
+              updatedAt: json.updatedAt,
+              logs: json.logs,
+              scheduleConfig: json.scheduleConfig,
+              userProfile: json.userProfile,
+            },
+          };
+        }
       }
-    } else if (nativeRes.status === 404) {
-      const errJson = await nativeRes.json().catch(() => ({}));
-      notifyStatus('error');
-      return {
-        success: false,
-        message: errJson.error || `Fant ingen lagret data i skyen for koden "${cleanCode}". Trykk "1. Last opp til skyen" først!`,
-      };
     }
   } catch (err) {
     console.warn('Native server /api/sync fetch unavailable, trying cloud fallbacks...', err);
