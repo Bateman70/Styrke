@@ -1,9 +1,9 @@
 import { WorkoutLog, UserScheduleConfig, UserProfile } from '../types/workout';
 
-// 100% Reliable CORS-enabled Cloud REST API
-const REST_API_URL = 'https://api.jsonbin.io/v3/b';
+// 100% Reliable CORS-enabled Cloud REST API (Zero-auth)
+const REST_API_URL = 'https://api.restful-api.dev/objects';
 const DEFAULT_SYNC_KEY = 'styrke55';
-const GLOBAL_REGISTRY_ID = '68fff7591e35ca5679c6d5cf';
+const GLOBAL_REGISTRY_ID = 'ff808181a09d98f701a1033dd9a46e8a';
 
 export interface CloudSyncPayload {
   syncCode: string;
@@ -53,7 +53,7 @@ function notifyStatus(status: SyncStatus) {
 }
 
 function isValidSkyId(id: string): boolean {
-  return typeof id === 'string' && /^[a-f0-9]{24,32}$/i.test(id.trim());
+  return typeof id === 'string' && id.trim().length >= 10;
 }
 
 function cleanSupabaseUrl(url: string): string {
@@ -87,14 +87,13 @@ export function checkAndApplyUrlSupabaseConfig(): boolean {
 async function registerGlobalSkyId(syncCode: string, skyId: string): Promise<boolean> {
   try {
     const cleanKey = syncCode.trim().toLowerCase();
-    const res = await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}/latest`);
+    const res = await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}`);
     let registry: Record<string, string> = {};
     if (res.ok) {
       const json = await res.json();
-      if (json && json.record) {
+      if (json && json.data && json.data.registry) {
         try {
-          const rawReg = typeof json.record === 'string' ? json.record : json.record.registry;
-          registry = typeof rawReg === 'string' ? JSON.parse(rawReg) : rawReg || {};
+          registry = typeof json.data.registry === 'string' ? JSON.parse(json.data.registry) : json.data.registry;
         } catch (e) {
           registry = {};
         }
@@ -105,7 +104,8 @@ async function registerGlobalSkyId(syncCode: string, skyId: string): Promise<boo
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        registry: JSON.stringify(registry),
+        name: 'mystrength_registry',
+        data: { registry: JSON.stringify(registry) },
       }),
     });
     return putRes.ok;
@@ -118,11 +118,11 @@ async function registerGlobalSkyId(syncCode: string, skyId: string): Promise<boo
 async function lookupGlobalSkyId(syncCode: string): Promise<string | null> {
   try {
     const cleanKey = syncCode.trim().toLowerCase();
-    const res = await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}/latest`);
+    const res = await fetch(`${REST_API_URL}/${GLOBAL_REGISTRY_ID}`);
     if (res.ok) {
       const json = await res.json();
-      if (json && json.record) {
-        const rawReg = typeof json.record === 'string' ? json.record : json.record.registry;
+      if (json && json.data && json.data.registry) {
+        const rawReg = json.data.registry;
         const registry: Record<string, string> = typeof rawReg === 'string' ? JSON.parse(rawReg) : rawReg || {};
         return registry[cleanKey] || null;
       }
@@ -276,8 +276,8 @@ export async function uploadToCloudDetails(
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          syncCode: cleanCode,
-          content: stringifiedContent,
+          name: cleanCode,
+          data: { content: stringifiedContent },
         }),
       });
 
@@ -297,17 +297,16 @@ export async function uploadToCloudDetails(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Bin-Private': 'false',
       },
       body: JSON.stringify({
-        syncCode: cleanCode,
-        content: stringifiedContent,
+        name: cleanCode,
+        data: { content: stringifiedContent },
       }),
     });
 
     if (postRes.ok) {
       const created = await postRes.json();
-      const newId = created?.metadata?.id || created?.id;
+      const newId = created?.id;
       if (newId) {
         setActiveSkyId(newId);
         await registerGlobalSkyId(cleanCode, newId);
@@ -394,7 +393,7 @@ export async function downloadFromCloudDetails(syncCode: string): Promise<SyncRe
 
   const parseRecordPayload = (json: any): CloudSyncPayload | null => {
     if (!json) return null;
-    const raw = json.record?.content || json.record?.data?.content || json.data?.content || json.record;
+    const raw = json.data?.content || json.content || json.record?.content || json.record;
     if (!raw) return null;
     try {
       return typeof raw === 'string' ? JSON.parse(raw) : raw;
@@ -405,7 +404,7 @@ export async function downloadFromCloudDetails(syncCode: string): Promise<SyncRe
 
   try {
     if (isValidSkyId(skyId)) {
-      const res = await fetch(`${REST_API_URL}/${skyId}/latest`);
+      const res = await fetch(`${REST_API_URL}/${skyId}`);
       if (res.ok) {
         const json = await res.json();
         const parsed = parseRecordPayload(json);
@@ -424,7 +423,7 @@ export async function downloadFromCloudDetails(syncCode: string): Promise<SyncRe
     const foundId = await lookupGlobalSkyId(cleanCode);
     if (foundId && isValidSkyId(foundId)) {
       setActiveSkyId(foundId);
-      const retryRes = await fetch(`${REST_API_URL}/${foundId}/latest`);
+      const retryRes = await fetch(`${REST_API_URL}/${foundId}`);
       if (retryRes.ok) {
         const json = await retryRes.json();
         const parsed = parseRecordPayload(json);

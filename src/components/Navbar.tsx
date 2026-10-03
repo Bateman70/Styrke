@@ -202,9 +202,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         <button
           onClick={onOpenCloudSync}
-          className="flex flex-col items-center space-y-1 py-1 px-3 rounded-xl text-cyan-400 font-semibold"
+          className="flex flex-col items-center space-y-1 py-1 px-3 rounded-xl text-slate-400 hover:text-slate-200 transition-all"
         >
-          <Cloud className="w-5 h-5 text-cyan-400" />
+          <Cloud className="w-5 h-5 text-slate-400" />
           <span className="text-[10px]">Sky-Synk</span>
         </button>
 

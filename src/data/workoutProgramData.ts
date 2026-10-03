@@ -102,7 +102,7 @@ export const WORKOUT_PROGRAMS: Record<'okt-a' | 'okt-b' | 'fri-okt', WorkoutProg
         defaultReps: '3–4 min',
         restSeconds: 0,
         focus: 'Hofteåpnere, dype knebøy med kroppsvekt, "katte-ku" for ryggsøylen. Gjør kroppen klar for belastning.',
-        videoUrl: 'https://www.youtube.com/embed/K8b__4n9Tmo',
+        videoUrl: 'https://www.youtube.com/embed/v7SN-d4qXx0',
         videoTitle: 'Katte-ku & Dynamisk oppvarming',
       },
       {
@@ -114,7 +114,7 @@ export const WORKOUT_PROGRAMS: Record<'okt-a' | 'okt-b' | 'fri-okt', WorkoutProg
         defaultReps: '8–10',
         restSeconds: 90,
         focus: 'Dybde, oppreist bryst, kjerneaktivering. Skånsom for korsryggen sammenlignet med tradisjonell stangbøy.',
-        videoUrl: 'https://www.youtube.com/embed/NI4cZ3K7Y-4',
+        videoUrl: 'https://www.youtube.com/embed/QOVaHwm-Q6U',
         videoTitle: 'Goblet Squat Teknikk',
       },
       {
@@ -126,7 +126,7 @@ export const WORKOUT_PROGRAMS: Record<'okt-a' | 'okt-b' | 'fri-okt', WorkoutProg
         defaultReps: '10–12',
         restSeconds: 45,
         focus: 'Trekk skulderbladene godt sammen, stram øvre rygg og hold stolt bryst.',
-        videoUrl: 'https://www.youtube.com/embed/lJ7xT5aEStU',
+        videoUrl: 'https://www.youtube.com/embed/xQNrFHEMhI4',
         videoTitle: 'Sittende kabelroing',
       },
       {
@@ -163,7 +163,7 @@ export const WORKOUT_PROGRAMS: Record<'okt-a' | 'okt-b' | 'fri-okt', WorkoutProg
         restSeconds: 45,
         isPerSide: true,
         focus: 'Anti-rotasjonsstyrke i kjernen som stabiliserer bekken og rygg under løping. 10-12 reps per side.',
-        videoUrl: 'https://www.youtube.com/embed/AH_QZLM50-s',
+        videoUrl: 'https://www.youtube.com/embed/pSHjTRCQxIw',
         videoTitle: 'Pallof Press anti-rotasjon',
       },
     ],
@@ -184,7 +184,7 @@ export const WORKOUT_PROGRAMS: Record<'okt-a' | 'okt-b' | 'fri-okt', WorkoutProg
         defaultReps: '3–4 min',
         restSeconds: 0,
         focus: 'Lunge med rotasjon, seteaktivering (glute bridges), skuldersirkler.',
-        videoUrl: 'https://www.youtube.com/embed/3B-3V89U4U8',
+        videoUrl: 'https://www.youtube.com/embed/v7SN-d4qXx0',
         videoTitle: 'Dynamisk oppvarming for løpere',
       },
       {
@@ -208,7 +208,7 @@ export const WORKOUT_PROGRAMS: Record<'okt-a' | 'okt-b' | 'fri-okt', WorkoutProg
         defaultReps: '10–12',
         restSeconds: 45,
         focus: 'Latissimus dorsi og holdningsmuskulatur. Trekk stangen ned mot øvre bryst.',
-        videoUrl: 'https://www.youtube.com/embed/GUIrn3b3zS8',
+        videoUrl: 'https://www.youtube.com/embed/CAwf7n6Luuc',
         videoTitle: 'Nedtrekk foran',
       },
       {
@@ -245,7 +245,7 @@ export const WORKOUT_PROGRAMS: Record<'okt-a' | 'okt-b' | 'fri-okt', WorkoutProg
         defaultReps: '30–45 sek',
         restSeconds: 45,
         focus: 'Anti-ekstensjon og antirotasjon for dyp kjernemuskulatur. Minimer hoftebevegelse under klapp.',
-        videoUrl: 'https://www.youtube.com/embed/kL_NJAk51fU',
+        videoUrl: 'https://www.youtube.com/embed/pSHjTRCQxIw',
         videoTitle: 'Planke med skulderklapp',
       },
     ],

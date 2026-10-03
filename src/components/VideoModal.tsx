@@ -67,6 +67,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({ exercise, onClose }) => 
                 title={exercise.videoTitle || exercise.name}
                 className="absolute inset-0 w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
               />
             </div>
