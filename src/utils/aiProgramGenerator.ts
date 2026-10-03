@@ -32,7 +32,7 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
           defaultReps: mainReps,
           restSeconds: restSec,
           focus: isOlder ? 'Fokusér på dyp knebøy med kontrollert tempo og ryggen rett.' : 'Gå dypt, ta vare på knærne og press opp gjennom hælene.',
-          videoUrl: 'https://www.youtube.com/embed/MeIiIdhvKL4',
+          videoUrl: 'https://www.youtube.com/embed/QOVaHwm-Q6U',
           videoTitle: 'Goblet Squat teknikk',
         },
         {
@@ -44,7 +44,7 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
           defaultReps: mainReps,
           restSeconds: restSec,
           focus: 'Styrker hamstrings og setemuskulatur for bedre løpesteg. Skyv hofta bakover.',
-          videoUrl: 'https://www.youtube.com/embed/JCXUYuzw420',
+          videoUrl: 'https://www.youtube.com/embed/_oyxCn2iSjU',
           videoTitle: 'Rumensk Markløft teknikk',
         },
         {
@@ -144,7 +144,7 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
           defaultReps: '10–12',
           restSeconds: restSec,
           focus: 'Hold vekten inntil brystet. God dyp knebøy som styrker lårene og hoftene for hverdagen.',
-          videoUrl: 'https://www.youtube.com/embed/MeIiIdhvKL4',
+          videoUrl: 'https://www.youtube.com/embed/QOVaHwm-Q6U',
         },
         {
           id: 'sittende-roing',
@@ -262,7 +262,7 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
           defaultReps: '8–10',
           restSeconds: 90,
           focus: 'Press gjennom hele foten. Bygger lårmuskulatur og grunnstyrke.',
-          videoUrl: 'https://www.youtube.com/embed/MeIiIdhvKL4',
+          videoUrl: 'https://www.youtube.com/embed/QOVaHwm-Q6U',
         },
         {
           id: 'bent-over-row',
@@ -303,7 +303,7 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
           defaultReps: '8–10',
           restSeconds: 90,
           focus: 'Strekk på hamstrings i bunnen. Press hoften fram for full kontraksjon.',
-          videoUrl: 'https://www.youtube.com/embed/JCXUYuzw420',
+          videoUrl: 'https://www.youtube.com/embed/_oyxCn2iSjU',
         },
         {
           id: 'skulderpress-staende',

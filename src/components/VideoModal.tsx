@@ -10,7 +10,9 @@ interface VideoModalProps {
 export const VideoModal: React.FC<VideoModalProps> = ({ exercise, onClose }) => {
   if (!exercise) return null;
 
-  const directYoutubeUrl = exercise.videoUrl ? exercise.videoUrl.replace('/embed/', '/watch?v=') : '#';
+  const directYoutubeUrl = exercise.videoUrl
+    ? exercise.videoUrl.replace('/embed/', '/watch?v=')
+    : `https://www.youtube.com/results?search_query=${encodeURIComponent(exercise.name + ' teknikk øvelse')}`;
 
   return (
     <div
@@ -43,21 +45,19 @@ export const VideoModal: React.FC<VideoModalProps> = ({ exercise, onClose }) => 
         {/* Body: Video & Info */}
         <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
           
-          {/* Direct YouTube link fallback button if browser blocks inline player */}
-          {exercise.videoUrl && (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs">
-              <span className="text-slate-400">Teknikkvideo for øvelsen:</span>
-              <a
-                href={directYoutubeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 font-semibold transition-all"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Åpne direkte i YouTube</span>
-              </a>
-            </div>
-          )}
+          {/* Direct YouTube link button */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+            <span className="text-slate-400">Teknikkvideo & Instruksjon:</span>
+            <a
+              href={directYoutubeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 font-semibold transition-all shadow-sm"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Åpne i YouTube</span>
+            </a>
+          </div>
 
           {/* Responsive Video Embed */}
           {exercise.videoUrl && (

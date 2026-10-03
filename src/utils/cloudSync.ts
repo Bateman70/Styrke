@@ -271,6 +271,14 @@ export async function uploadToCloudDetails(
   let skyId = getActiveSkyId();
 
   try {
+    if (!isValidSkyId(skyId)) {
+      const foundId = await lookupGlobalSkyId(cleanCode);
+      if (foundId && isValidSkyId(foundId)) {
+        skyId = foundId;
+        setActiveSkyId(foundId);
+      }
+    }
+
     if (isValidSkyId(skyId)) {
       const putRes = await fetch(`${REST_API_URL}/${skyId}`, {
         method: 'PUT',
