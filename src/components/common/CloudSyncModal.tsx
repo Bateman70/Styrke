@@ -54,7 +54,8 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
     const targetUrl = supabaseUrl.trim() || currentSupabase?.url || '';
     const targetKey = supabaseKey.trim() || currentSupabase?.anonKey || '';
     if (targetUrl && targetKey) {
-      const magicUrl = `https://styrke.onrender.com/?sb_url=${encodeURIComponent(targetUrl)}&sb_key=${encodeURIComponent(targetKey)}`;
+      const baseUrl = window.location.origin || 'https://styrke.onrender.com';
+      const magicUrl = `${baseUrl}/?sb_url=${encodeURIComponent(targetUrl)}&sb_key=${encodeURIComponent(targetKey)}`;
       navigator.clipboard.writeText(magicUrl);
       setCopiedMagicLink(true);
       setTimeout(() => setCopiedMagicLink(false), 2500);
