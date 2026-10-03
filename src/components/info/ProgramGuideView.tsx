@@ -36,10 +36,18 @@ export const ProgramGuideView: React.FC<ProgramGuideViewProps> = ({
             <span>Offisiell Treningsguide</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-100 tracking-tight">
-            {PROGRAM_GUIDE_INFO.title}
+            {userProfile ? 'Treningsguide & Teknikkvideoer' : PROGRAM_GUIDE_INFO.title}
           </h1>
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-            {PROGRAM_GUIDE_INFO.description} {PROGRAM_GUIDE_INFO.targetAudience}
+            {userProfile
+              ? `Skreddersydde helkroppsøkter tilpasset din profil (${userProfile.age} år, ${userProfile.weightKg} kg) med ${
+                  userProfile.location === 'hjemme'
+                    ? 'øvelser for hjemmegym (manualer, strikk og kroppsvekt)'
+                    : userProfile.location === 'kombinasjon'
+                    ? 'kombinasjon av apparater og hjemmeutstyr'
+                    : 'frie vekter og apparater på treningssenter'
+                }.`
+              : `${PROGRAM_GUIDE_INFO.description} ${PROGRAM_GUIDE_INFO.targetAudience}`}
           </p>
         </div>
       </div>

@@ -37,7 +37,7 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ onClose }) => {
         <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-xs font-bold px-4 py-2 flex items-center justify-between shadow-md">
           <div className="flex items-center space-x-1.5">
             <Sparkles className="w-4 h-4 animate-spin text-amber-300" />
-            <span>Nyheter i Styrke & Løp ({APP_VERSION})</span>
+            <span>Nyheter i MyStrength ({APP_VERSION})</span>
           </div>
           <span className="bg-slate-950/40 px-2 py-0.5 rounded-full font-mono text-[11px] text-cyan-200">
             Lukkes om {secondsLeft}s
