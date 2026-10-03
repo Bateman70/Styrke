@@ -18,9 +18,9 @@ interface ProfileModalProps {
 export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSaveProfile, onClose }) => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
-  const [age, setAge] = useState<number>(currentProfile.age || 55);
+  const [ageInput, setAgeInput] = useState<string>(() => String(currentProfile.age || 55));
+  const [weightInput, setWeightInput] = useState<string>(() => String(currentProfile.weightKg || 95));
   const [gender, setGender] = useState<Gender>(currentProfile.gender || 'mann');
-  const [weightKg, setWeightKg] = useState<number>(currentProfile.weightKg || 95);
   const [goal, setGoal] = useState<FitnessGoal>(currentProfile.goal || 'lopere');
   const [location, setLocation] = useState<TrainingLocation>(currentProfile.location || 'senter');
   const [experience, setExperience] = useState<ExperienceLevel>(currentProfile.experience || 'middels');
@@ -34,7 +34,22 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
 
   const [previewPrograms, setPreviewPrograms] = useState<Record<string, WorkoutProgram> | null>(null);
 
+  const getValidAge = () => {
+    const val = parseInt(ageInput, 10);
+    if (isNaN(val)) return 55;
+    return Math.min(95, Math.max(16, val));
+  };
+
+  const getValidWeight = () => {
+    const val = parseInt(weightInput, 10);
+    if (isNaN(val)) return 95;
+    return Math.min(200, Math.max(30, val));
+  };
+
   const handleGenerate = () => {
+    const age = getValidAge();
+    const weightKg = getValidWeight();
+
     const updatedProfile: UserProfile = {
       age,
       gender,
@@ -52,6 +67,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
   };
 
   const handleFinalSave = () => {
+    const age = getValidAge();
+    const weightKg = getValidWeight();
+
     const updatedProfile: UserProfile = {
       age,
       gender,
@@ -139,8 +157,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
                     type="number"
                     min={16}
                     max={95}
-                    value={age}
-                    onChange={(e) => setAge(parseInt(e.target.value) || 55)}
+                    value={ageInput}
+                    onChange={(e) => setAgeInput(e.target.value)}
+                    placeholder="f.eks. 46"
                     className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-bold text-base focus:outline-none focus:border-blue-500 transition-colors"
                   />
                 </div>
@@ -151,10 +170,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
                   </label>
                   <input
                     type="number"
-                    min={40}
+                    min={30}
                     max={200}
-                    value={weightKg}
-                    onChange={(e) => setWeightKg(parseInt(e.target.value) || 95)}
+                    value={weightInput}
+                    onChange={(e) => setWeightInput(e.target.value)}
+                    placeholder="f.eks. 65"
                     className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-bold text-base focus:outline-none focus:border-blue-500 transition-colors"
                   />
                 </div>
@@ -367,7 +387,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
                     }
                   </h4>
                   <p className="text-xs text-slate-300">
-                    Tilpasset {gender === 'mann' ? 'Mann' : gender === 'kvinne' ? 'Kvinne' : 'Bruker'} ({age} år, {weightKg} kg) • {
+                    Tilpasset {gender === 'mann' ? 'Mann' : gender === 'kvinne' ? 'Kvinne' : 'Bruker'} ({getValidAge()} år, {getValidWeight()} kg) • {
                       location === 'hjemme' ? '🏠 Hjemmegym (Manualer & Strikk)' : location === 'kombinasjon' ? '🔄 Kombinasjon (Senter & Hjemme)' : '🏋️‍♂️ Treningssenter'
                     }
                   </p>
