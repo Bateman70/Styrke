@@ -59,6 +59,8 @@ export interface WorkoutLog {
 
 export type Gender = 'mann' | 'kvinne' | 'annet';
 
+export type TrainingLocation = 'hjemme' | 'senter' | 'kombinasjon';
+
 export type FitnessGoal = 
   | 'lopere'          // Styrke for løpere (skadeforebygging & beinstyrke)
   | 'helse_styrke'    // Generell helse, rygg/kjerne & funksjonell hverdagsstyrke
@@ -72,6 +74,7 @@ export interface UserProfile {
   gender: Gender;          // Mann / Kvinne / Annet
   weightKg: number;        // Eks: 95, 70, 80
   goal: FitnessGoal;       // Primært treningsmål
+  location?: TrainingLocation; // Hjemme, Treningssenter eller Kombinasjon
   experience: ExperienceLevel;
   daysPerWeek: number;     // 2, 3 eller 4 dager/uke
   hasCompletedSetup?: boolean;

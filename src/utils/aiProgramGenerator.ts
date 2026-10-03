@@ -1,8 +1,9 @@
-import { UserProfile, WorkoutProgram, WorkoutType, Exercise } from '../types/workout';
+import { UserProfile, WorkoutProgram, WorkoutType, Exercise, TrainingLocation } from '../types/workout';
 import { WORKOUT_PROGRAMS as DEFAULT_PROGRAMS } from '../data/workoutProgramData';
 
 export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' | 'okt-b' | 'fri-okt', WorkoutProgram> {
   const { age, gender, weightKg, goal, experience } = profile;
+  const location: TrainingLocation = profile.location || 'senter';
 
   const isOlder = age >= 50;
   const isBeginner = experience === 'nybegynner';
@@ -122,7 +123,7 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
       ],
     };
 
-    return { ...DEFAULT_PROGRAMS, 'okt-a': oktA, 'okt-b': oktB };
+    return applyLocationAdaptations({ ...DEFAULT_PROGRAMS, 'okt-a': oktA, 'okt-b': oktB }, location);
   }
 
   // 2. Goal: Generell Helse & Hverdagsstyrke
@@ -230,7 +231,7 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
       ],
     };
 
-    return { ...DEFAULT_PROGRAMS, 'okt-a': oktA, 'okt-b': oktB };
+    return applyLocationAdaptations({ ...DEFAULT_PROGRAMS, 'okt-a': oktA, 'okt-b': oktB }, location);
   }
 
   // 3. Goal: Muskelvekst & Styrke
@@ -338,7 +339,7 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
       ],
     };
 
-    return { ...DEFAULT_PROGRAMS, 'okt-a': oktA, 'okt-b': oktB };
+    return applyLocationAdaptations({ ...DEFAULT_PROGRAMS, 'okt-a': oktA, 'okt-b': oktB }, location);
   }
 
   // 4. Goal: Vektnedgang & Kondisjonsstyrke
@@ -445,5 +446,70 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
     ],
   };
 
-  return { ...DEFAULT_PROGRAMS, 'okt-a': oktA, 'okt-b': oktB };
+  return applyLocationAdaptations({ ...DEFAULT_PROGRAMS, 'okt-a': oktA, 'okt-b': oktB }, location);
+}
+
+function applyLocationAdaptations(
+  programs: Record<'okt-a' | 'okt-b' | 'fri-okt', WorkoutProgram>,
+  location: TrainingLocation
+): Record<'okt-a' | 'okt-b' | 'fri-okt', WorkoutProgram> {
+  const isHome = location === 'hjemme';
+  const isCombo = location === 'kombinasjon';
+
+  if (!isHome && !isCombo) return programs;
+
+  const locLabel = isHome ? '🏠 Hjemmegym (Manualer, Strikk & Kroppsvekt)' : '🔄 Kombinasjon (Senter / Hjemme)';
+
+  const adaptExercises = (exercises: Exercise[]): Exercise[] => {
+    return exercises.map((ex) => {
+      const updated = { ...ex };
+      const nameLower = ex.name.toLowerCase();
+
+      if (isHome) {
+        if (nameLower.includes('kabelroing') || nameLower.includes('sittende roing')) {
+          updated.name = 'Roing m/ Hantel eller Treningsstrikk';
+          updated.focus = 'Bøy deg i hofta m/ rett rygg. Trekk hantel/kettlebell eller dørfesta strikk mot hoften.';
+        } else if (nameLower.includes('nedtrekk')) {
+          updated.name = 'Nedtrekk m/ Treningsstrikk i dør (eller Chins)';
+          updated.focus = 'Fest strikken øverst i døren. Stå eller kneel og trekk albuene ned mot siden.';
+        } else if (nameLower.includes('lårcurl')) {
+          updated.name = 'Ettbeins Hofteheving på Stol / Sofakant';
+          updated.focus = 'Plasser hælen på en stol eller sofakant og løft hoften opp. Fantastisk for baksiden!';
+        } else if (nameLower.includes('beinpress')) {
+          updated.name = 'Goblet Squat eller Bulgarsk Split Squat m/ Vekt';
+          updated.focus = 'Bruk hantel, kettlebell eller ryggsekk m/ vekter. Gå dypt m/ god kontroll.';
+        } else if (nameLower.includes('pallof press')) {
+          updated.name = 'Pallof Press m/ Strikk i dør';
+          updated.focus = 'Fest strikken i dørhøyde. Stå fra siden og press strikken rett ut fra brystet.';
+        } else if (nameLower.includes('skraabenk') || nameLower.includes('benkpress m/ stang')) {
+          updated.name = 'Armhevinger (Push-ups) eller Gulvpress m/ Hantler';
+          updated.focus = 'Ligg på ryggen på matten m/ hantler eller utfør armhevinger m/ god dybde.';
+        }
+      } else if (isCombo) {
+        if (nameLower.includes('kabelroing')) {
+          updated.name = 'Kabelroing / Roing m/ Hantel eller Strikk';
+        } else if (nameLower.includes('nedtrekk')) {
+          updated.name = 'Nedtrekk (Apparat på senter eller Strikk hjemme)';
+        } else if (nameLower.includes('lårcurl')) {
+          updated.name = 'Lårcurl i apparat / Hofteheving på stol';
+        }
+      }
+
+      return updated;
+    });
+  };
+
+  return {
+    ...programs,
+    'okt-a': {
+      ...programs['okt-a'],
+      subtitle: `${programs['okt-a'].subtitle} • ${locLabel}`,
+      exercises: adaptExercises(programs['okt-a'].exercises),
+    },
+    'okt-b': {
+      ...programs['okt-b'],
+      subtitle: `${programs['okt-b'].subtitle} • ${locLabel}`,
+      exercises: adaptExercises(programs['okt-b'].exercises),
+    },
+  };
 }

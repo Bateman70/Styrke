@@ -12,6 +12,7 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
   gender: 'mann',
   weightKg: 95,
   goal: 'lopere',
+  location: 'senter',
   experience: 'middels',
   daysPerWeek: 2,
   hasCompletedSetup: true,

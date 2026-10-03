@@ -74,7 +74,9 @@ export const ProgramGuideView: React.FC<ProgramGuideViewProps> = ({
             <div>
               <span className="text-xs text-blue-400 font-bold uppercase tracking-wider block">Aktiv Profil & AI-Program</span>
               <h4 className="font-extrabold text-slate-100 text-sm">
-                {userProfile.gender === 'mann' ? 'Mann' : userProfile.gender === 'kvinne' ? 'Kvinne' : 'Bruker'} ({userProfile.age} år, {userProfile.weightKg} kg) — {
+                {userProfile.gender === 'mann' ? 'Mann' : userProfile.gender === 'kvinne' ? 'Kvinne' : 'Bruker'} ({userProfile.age} år, {userProfile.weightKg} kg) • {
+                  userProfile.location === 'hjemme' ? '🏠 Hjemmegym' : userProfile.location === 'kombinasjon' ? '🔄 Kombinasjon' : '🏋️‍♂️ Treningssenter'
+                } — {
                   userProfile.goal === 'lopere' ? 'Styrke for Løpere' : userProfile.goal === 'helse_styrke' ? 'Generell Helse & Styrke' : userProfile.goal === 'muskelvekst' ? 'Muskelvekst & Styrke' : 'Vektnedgang & Puls'
                 }
               </h4>

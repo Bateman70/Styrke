@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { UserProfile, FitnessGoal, Gender, ExperienceLevel, WorkoutProgram, WorkoutType } from '../../types/workout';
+import { UserProfile, FitnessGoal, Gender, ExperienceLevel, WorkoutProgram, WorkoutType, TrainingLocation } from '../../types/workout';
 import { generateAIWorkoutPrograms } from '../../utils/aiProgramGenerator';
-import { User, Target, Sparkles, CheckCircle2, X, Activity, Dumbbell, ShieldCheck, Flame } from 'lucide-react';
+import { User, Target, Sparkles, CheckCircle2, X, Activity, Dumbbell, ShieldCheck, Flame, Home, Building2, Repeat } from 'lucide-react';
 
 interface ProfileModalProps {
   currentProfile: UserProfile;
@@ -16,6 +16,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
   const [gender, setGender] = useState<Gender>(currentProfile.gender || 'mann');
   const [weightKg, setWeightKg] = useState<number>(currentProfile.weightKg || 95);
   const [goal, setGoal] = useState<FitnessGoal>(currentProfile.goal || 'lopere');
+  const [location, setLocation] = useState<TrainingLocation>(currentProfile.location || 'senter');
   const [experience, setExperience] = useState<ExperienceLevel>(currentProfile.experience || 'middels');
   const [daysPerWeek, setDaysPerWeek] = useState<number>(currentProfile.daysPerWeek || 2);
 
@@ -27,6 +28,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
       gender,
       weightKg,
       goal,
+      location,
       experience,
       daysPerWeek,
       hasCompletedSetup: true,
@@ -282,6 +284,40 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
                   </p>
                 </div>
 
+              </div>
+
+              {/* Training Location Selection */}
+              <div className="pt-2 space-y-2">
+                <span className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Hvor trener du? (Tilpasser utstyr til apparater, manualer eller strikk):
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {[
+                    { id: 'senter', label: 'Treningssenter', desc: 'Apparater, kabler & stenger', icon: Building2 },
+                    { id: 'hjemme', label: 'Hjemmegym', desc: 'Manualer, strikk & kasse', icon: Home },
+                    { id: 'kombinasjon', label: 'Kombinasjon', desc: 'Både hjemme og på senter', icon: Repeat },
+                  ].map((item) => {
+                    const IconComp = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setLocation(item.id as TrainingLocation)}
+                        className={`p-3 rounded-xl text-left border transition-all flex flex-col justify-between space-y-1 ${
+                          location === item.id
+                            ? 'bg-blue-950/50 text-blue-200 border-blue-500 ring-2 ring-blue-500 shadow-md'
+                            : 'bg-slate-950/70 text-slate-400 border-slate-800 hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2 text-blue-400 font-bold text-xs">
+                          <IconComp className="w-4 h-4" />
+                          <span>{item.label}</span>
+                        </div>
+                        <span className="text-[11px] text-slate-400 block">{item.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="pt-4 flex justify-between items-center">
