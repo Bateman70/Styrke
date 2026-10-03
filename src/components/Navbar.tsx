@@ -40,19 +40,14 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             
-            {/* Logo + Version Badge */}
-            <div className="flex items-center space-x-3 cursor-pointer shrink-0" onClick={() => setActiveTab('calendar')}>
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <Dumbbell className="w-6 h-6 text-white transform -rotate-12" />
+            {/* Logo Brand */}
+            <div className="flex items-center space-x-2.5 cursor-pointer shrink-0" onClick={() => setActiveTab('calendar')}>
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <Dumbbell className="w-5 h-5 text-white transform -rotate-12" />
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
-                  Styrke & Løp
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                  {APP_VERSION}
-                </span>
-              </div>
+              <span className="font-extrabold text-lg sm:text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
+                MyStrength
+              </span>
             </div>
 
             {/* Desktop Nav Tabs */}
@@ -106,34 +101,34 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </nav>
 
-            {/* Right Header Actions: Min Profil, Sky-Sync Status Button & QuickStarts */}
-            <div className="flex items-center space-x-2.5 shrink-0">
+            {/* Right Header Actions: Min Profil & Sky-Sync Status Button */}
+            <div className="flex items-center space-x-1.5 sm:space-x-2.5 shrink-0">
               
               {/* Profile Button */}
               <button
                 onClick={onOpenProfile}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border border-blue-500/40 transition-all flex items-center space-x-1.5 shadow-sm"
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border border-blue-500/40 transition-all flex items-center space-x-1.5 shadow-sm"
                 title="Endre profil og treningsmål"
               >
-                <User className="w-3.5 h-3.5 text-blue-400" />
-                <span className="hidden sm:inline">Min Profil ({userProfile?.age || 55} år)</span>
-                <span className="sm:hidden">Profil</span>
+                <User className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                <span className="hidden sm:inline">Profil ({userProfile?.age || 55} år)</span>
+                <span className="sm:hidden text-[11px]">Profil</span>
               </button>
 
-              {/* Sky-Sync Button (Always visible on PC and Mobile header) */}
+              {/* Sky-Sync Button */}
               <button
                 onClick={onOpenCloudSync}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all flex items-center space-x-1.5 shadow-sm"
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all flex items-center space-x-1.5 shadow-sm"
                 title="Åpne Sky-Synkronisering"
               >
                 {syncState.status === 'syncing' ? (
-                  <RefreshCw className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+                  <RefreshCw className="w-3.5 h-3.5 text-cyan-400 animate-spin shrink-0" />
                 ) : syncState.status === 'synced' ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 ) : syncState.status === 'error' ? (
-                  <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                 ) : (
-                  <Cloud className="w-3.5 h-3.5 text-cyan-400" />
+                  <Cloud className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                 )}
                 
                 <span className="hidden sm:inline">
@@ -143,7 +138,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     ? `Sky-Synk (${syncState.lastSyncTime})`
                     : 'Sky-Synk'}
                 </span>
-                <span className="sm:hidden text-cyan-400">Sky-Synk</span>
+                <span className="sm:hidden text-[11px] text-cyan-400">Sky-Synk</span>
               </button>
 
               {/* Quick Start Buttons - Hidden on small mobile screens */}

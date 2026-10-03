@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserProfile, WorkoutLog, WorkoutType } from './types/workout';
+import { UserProfile, WorkoutLog, WorkoutType, WorkoutProgram } from './types/workout';
 import { getStoredLogs, saveStoredLogs, generateAutoSchedule, mergeWorkoutLogs, getUserProfile, saveUserProfile } from './utils/storage';
 import { generateAIWorkoutPrograms } from './utils/aiProgramGenerator';
 import { Navbar } from './components/Navbar';
@@ -15,6 +15,7 @@ import { WhatsNewModal } from './components/common/WhatsNewModal';
 import { autoSaveToCloud, autoFetchFromCloud, checkAndApplyUrlSupabaseConfig, CloudSyncPayload } from './utils/cloudSync';
 import { APP_VERSION, BUILD_TIME } from './constants/version';
 import { format } from 'date-fns';
+import { Sparkles } from 'lucide-react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'calendar' | 'workout' | 'run' | 'stats' | 'guide'>('calendar');
@@ -110,11 +111,25 @@ export function App() {
     autoSaveToCloud(updatedLogs, undefined, userProfile);
   };
 
-  // Save profile locally and trigger cloud save
-  const handleSaveProfile = (newProfile: UserProfile) => {
+  // Save profile locally and trigger cloud save & optionally generate calendar schedule
+  const handleSaveProfile = (
+    newProfile: UserProfile,
+    generatedPrograms?: Record<string, WorkoutProgram>,
+    selectedDays?: number[],
+    startDate?: string
+  ) => {
     setUserProfile(newProfile);
     saveUserProfile(newProfile);
-    autoSaveToCloud(logs, undefined, newProfile);
+
+    let updatedLogs = logs;
+    if (selectedDays && selectedDays.length > 0 && startDate) {
+      updatedLogs = generateAutoSchedule(selectedDays, startDate, logs);
+      setLogs(updatedLogs);
+      saveStoredLogs(updatedLogs);
+      setActiveTab('calendar');
+    }
+
+    autoSaveToCloud(updatedLogs, undefined, newProfile);
   };
 
   // Start a strength workout (Økt A or Økt B)
@@ -196,6 +211,39 @@ export function App() {
 
       {/* Main View Area with padding for fixed bars */}
       <main className="flex-grow pt-20 pb-24 md:pb-12">
+
+        {/* Active Program Sub-Header Banner */}
+        {userProfile && (
+          <div className="bg-slate-900/90 border-b border-slate-800/90 px-4 py-2.5 mb-6 text-xs text-slate-300 shadow-md">
+            <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold border border-blue-500/30 text-[11px] flex items-center space-x-1 shrink-0">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Aktivt Program</span>
+                </span>
+                <span className="font-extrabold text-slate-100 text-sm">
+                  {userProfile.goal === 'lopere'
+                    ? 'Styrke for Løpere'
+                    : userProfile.goal === 'helse_styrke'
+                    ? 'Helse & Hverdagsstyrke'
+                    : userProfile.goal === 'muskelvekst'
+                    ? 'Muskelvekst & Styrke'
+                    : 'Vektnedgang & Puls'}
+                </span>
+                <span className="text-slate-400 text-xs">
+                  • {userProfile.location === 'hjemme' ? '🏠 Hjemmegym' : userProfile.location === 'kombinasjon' ? '🔄 Kombinasjon' : '🏋️‍♂️ Treningssenter'} ({userProfile.age} år, {userProfile.weightKg} kg)
+                </span>
+              </div>
+              <button
+                onClick={() => setIsProfileModalOpen(true)}
+                className="text-blue-400 hover:text-blue-300 font-bold underline cursor-pointer text-xs ml-auto transition-colors"
+              >
+                Endre Profil / Generer Nytt
+              </button>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'calendar' && (
           <CalendarView
             logs={logs}
@@ -230,7 +278,7 @@ export function App() {
       {/* Footer with App Version & Build Time */}
       <footer className="bg-slate-900/80 border-t border-slate-800/80 py-4 text-center text-xs text-slate-400">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>Styrke & Løp Treningsapp • Tilpasset din profil</span>
+          <span>MyStrength Treningsapp • Tilpasset din profil</span>
           <button
             onClick={() => setIsWhatsNewOpen(true)}
             className="font-mono text-[11px] text-blue-400 hover:text-blue-300 bg-blue-950/60 hover:bg-blue-900/80 px-2.5 py-1 rounded-full border border-blue-800/40 transition-colors cursor-pointer flex items-center space-x-1"

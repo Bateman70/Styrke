@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import { UserProfile, FitnessGoal, Gender, ExperienceLevel, WorkoutProgram, WorkoutType, TrainingLocation } from '../../types/workout';
 import { generateAIWorkoutPrograms } from '../../utils/aiProgramGenerator';
-import { User, Target, Sparkles, CheckCircle2, X, Activity, Dumbbell, ShieldCheck, Flame, Home, Building2, Repeat } from 'lucide-react';
+import { User, Target, Sparkles, CheckCircle2, X, Activity, Dumbbell, ShieldCheck, Flame, Home, Building2, Repeat, Calendar as CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface ProfileModalProps {
   currentProfile: UserProfile;
-  onSaveProfile: (profile: UserProfile, generatedPrograms?: Record<string, WorkoutProgram>) => void;
+  onSaveProfile: (
+    profile: UserProfile,
+    generatedPrograms?: Record<string, WorkoutProgram>,
+    selectedDays?: number[],
+    startDate?: string
+  ) => void;
   onClose: () => void;
 }
 
@@ -19,6 +25,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
   const [location, setLocation] = useState<TrainingLocation>(currentProfile.location || 'senter');
   const [experience, setExperience] = useState<ExperienceLevel>(currentProfile.experience || 'middels');
   const [daysPerWeek, setDaysPerWeek] = useState<number>(currentProfile.daysPerWeek || 2);
+
+  // Schedule setup state for step 3 activation
+  const [startDate, setStartDate] = useState<string>(() => format(new Date(), 'yyyy-MM-dd'));
+  const [selectedDays, setSelectedDays] = useState<number[]>(() => {
+    return daysPerWeek === 3 ? [1, 3, 5] : [1, 4];
+  });
 
   const [previewPrograms, setPreviewPrograms] = useState<Record<string, WorkoutProgram> | null>(null);
 
@@ -45,13 +57,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
       gender,
       weightKg,
       goal,
+      location,
       experience,
       daysPerWeek,
       hasCompletedSetup: true,
     };
 
     const programs = previewPrograms || generateAIWorkoutPrograms(updatedProfile);
-    onSaveProfile(updatedProfile, programs);
+    onSaveProfile(updatedProfile, programs, selectedDays, startDate);
     onClose();
   };
 
@@ -340,24 +353,33 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
             </div>
           )}
 
-          {/* STEP 3: AI Generated Program Preview */}
+          {/* STEP 3: AI Generated Program Preview & Activation */}
           {step === 3 && previewPrograms && (
             <div className="space-y-4">
-              <div className="p-3.5 rounded-xl bg-gradient-to-r from-blue-950/60 to-cyan-950/60 border border-blue-500/40 flex items-center space-x-3">
-                <Sparkles className="w-6 h-6 text-cyan-400 shrink-0" />
-                <div>
-                  <h4 className="font-extrabold text-slate-100 text-sm">Skreddersydd AI Program Generert!</h4>
-                  <p className="text-xs text-slate-300 mt-0.5">
-                    Tilpasset {gender === 'mann' ? 'mann' : gender === 'kvinne' ? 'kvinne' : 'bruker'} ({age} år, {weightKg} kg).
+              
+              {/* Program Overview Banner */}
+              <div className="p-4 rounded-xl bg-gradient-to-r from-blue-950/80 to-cyan-950/80 border border-blue-500/40 flex items-start space-x-3">
+                <Sparkles className="w-6 h-6 text-cyan-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h4 className="font-extrabold text-slate-100 text-sm">
+                    AI-Program: {
+                      goal === 'lopere' ? 'Styrke for Løpere' : goal === 'helse_styrke' ? 'Helse & Hverdagsstyrke' : goal === 'muskelvekst' ? 'Muskelvekst & Styrke' : 'Vektnedgang & Puls'
+                    }
+                  </h4>
+                  <p className="text-xs text-slate-300">
+                    Tilpasset {gender === 'mann' ? 'Mann' : gender === 'kvinne' ? 'Kvinne' : 'Bruker'} ({age} år, {weightKg} kg) • {
+                      location === 'hjemme' ? '🏠 Hjemmegym (Manualer & Strikk)' : location === 'kombinasjon' ? '🔄 Kombinasjon (Senter & Hjemme)' : '🏋️‍♂️ Treningssenter'
+                    }
                   </p>
                 </div>
               </div>
 
+              {/* Workout Previews */}
               <div className="space-y-3">
                 {/* Program A Preview */}
                 <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-xs font-bold">
+                    <span className="px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-xs font-bold">
                       Økt A
                     </span>
                     <span className="text-xs text-slate-400">{previewPrograms['okt-a'].estimatedTime}</span>
@@ -375,7 +397,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
                 {/* Program B Preview */}
                 <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 text-xs font-bold">
+                    <span className="px-2.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 text-xs font-bold">
                       Økt B
                     </span>
                     <span className="text-xs text-slate-400">{previewPrograms['okt-b'].estimatedTime}</span>
@@ -391,21 +413,81 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
                 </div>
               </div>
 
-              <div className="pt-4 flex justify-between items-center">
+              {/* Schedule Setup for Calendar Generation */}
+              <div className="p-4 rounded-xl bg-slate-950 border border-blue-500/30 space-y-3">
+                <div className="flex items-center space-x-2 text-blue-400 font-bold text-xs uppercase tracking-wider">
+                  <CalendarIcon className="w-4 h-4" />
+                  <span>Sett Startdato & Treningsdager i Kalenderen:</span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Startdato:</label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-100 font-bold text-xs focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Velg Treningsdager:</label>
+                    <div className="flex flex-wrap gap-1">
+                      {[
+                        { day: 1, label: 'Man' },
+                        { day: 2, label: 'Tir' },
+                        { day: 3, label: 'Ons' },
+                        { day: 4, label: 'Tor' },
+                        { day: 5, label: 'Fre' },
+                        { day: 6, label: 'Lør' },
+                        { day: 0, label: 'Søn' },
+                      ].map((item) => {
+                        const isSelected = selectedDays.includes(item.day);
+                        return (
+                          <button
+                            key={item.day}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                if (selectedDays.length > 1) {
+                                  setSelectedDays(selectedDays.filter((d) => d !== item.day));
+                                }
+                              } else {
+                                setSelectedDays([...selectedDays, item.day]);
+                              }
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
+                              isSelected
+                                ? 'bg-blue-600 text-white border-blue-500'
+                                : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex justify-between items-center">
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors"
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors"
                 >
-                  ← Endre Mål
+                  ← Tilbake
                 </button>
                 <button
                   type="button"
                   onClick={handleFinalSave}
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-md flex items-center space-x-1.5"
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs transition-all shadow-lg flex items-center space-x-1.5"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Aktiver Dette Programmet!</span>
+                  <span>Aktiver & Generer Plan i Kalender!</span>
                 </button>
               </div>
             </div>
