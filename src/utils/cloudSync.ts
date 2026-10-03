@@ -1,4 +1,4 @@
-import { WorkoutLog, UserScheduleConfig } from '../types/workout';
+import { WorkoutLog, UserScheduleConfig, UserProfile } from '../types/workout';
 
 // 100% Reliable CORS-enabled Cloud REST API
 const REST_API_URL = 'https://api.jsonbin.io/v3/b';
@@ -10,6 +10,7 @@ export interface CloudSyncPayload {
   updatedAt: string;
   logs: WorkoutLog[];
   scheduleConfig?: UserScheduleConfig;
+  userProfile?: UserProfile;
 }
 
 export interface SupabaseConfig {
@@ -208,7 +209,8 @@ function minifiedLogs(logs: WorkoutLog[]): WorkoutLog[] {
 export async function uploadToCloudDetails(
   syncCode: string,
   logs: WorkoutLog[],
-  scheduleConfig?: UserScheduleConfig
+  scheduleConfig?: UserScheduleConfig,
+  userProfile?: UserProfile
 ): Promise<SyncResult> {
   const cleanCode = syncCode.trim().toLowerCase() || DEFAULT_SYNC_KEY;
   setActiveSyncKey(cleanCode);
@@ -219,6 +221,7 @@ export async function uploadToCloudDetails(
     updatedAt: new Date().toISOString(),
     logs: minifiedLogs(logs),
     scheduleConfig,
+    userProfile,
   };
 
   const stringifiedContent = JSON.stringify(payload);
@@ -455,9 +458,10 @@ export async function downloadFromCloudDetails(syncCode: string): Promise<SyncRe
 export async function uploadToCloud(
   syncCode: string,
   logs: WorkoutLog[],
-  scheduleConfig?: UserScheduleConfig
+  scheduleConfig?: UserScheduleConfig,
+  userProfile?: UserProfile
 ): Promise<boolean> {
-  const res = await uploadToCloudDetails(syncCode, logs, scheduleConfig);
+  const res = await uploadToCloudDetails(syncCode, logs, scheduleConfig, userProfile);
   return res.success;
 }
 
@@ -466,9 +470,13 @@ export async function downloadFromCloud(syncCode: string): Promise<CloudSyncPayl
   return res.payload || null;
 }
 
-export async function autoSaveToCloud(logs: WorkoutLog[], scheduleConfig?: UserScheduleConfig): Promise<boolean> {
+export async function autoSaveToCloud(
+  logs: WorkoutLog[],
+  scheduleConfig?: UserScheduleConfig,
+  userProfile?: UserProfile
+): Promise<boolean> {
   const syncKey = getActiveSyncKey();
-  return uploadToCloud(syncKey, logs, scheduleConfig);
+  return uploadToCloud(syncKey, logs, scheduleConfig, userProfile);
 }
 
 export async function autoFetchFromCloud(): Promise<CloudSyncPayload | null> {

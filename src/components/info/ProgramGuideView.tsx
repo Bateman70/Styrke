@@ -1,11 +1,25 @@
 import React, { useState } from 'react';
-import { PROGRAM_GUIDE_INFO, WORKOUT_PROGRAMS } from '../../data/workoutProgramData';
+import { PROGRAM_GUIDE_INFO, WORKOUT_PROGRAMS as DEFAULT_PROGRAMS } from '../../data/workoutProgramData';
 import { VideoModal } from '../VideoModal';
-import { Exercise } from '../../types/workout';
-import { BookOpen, ShieldCheck, Dumbbell, PlayCircle, Flame, CheckCircle, Clock, Lightbulb, Zap } from 'lucide-react';
+import { Exercise, WorkoutProgram, WorkoutType, UserProfile } from '../../types/workout';
+import { BookOpen, ShieldCheck, Dumbbell, PlayCircle, Clock, User } from 'lucide-react';
 
-export const ProgramGuideView: React.FC = () => {
+interface ProgramGuideViewProps {
+  activePrograms?: Record<string, WorkoutProgram>;
+  userProfile?: UserProfile;
+  onOpenProfile?: () => void;
+}
+
+export const ProgramGuideView: React.FC<ProgramGuideViewProps> = ({
+  activePrograms,
+  userProfile,
+  onOpenProfile,
+}) => {
   const [selectedVideoExercise, setSelectedVideoExercise] = useState<Exercise | null>(null);
+
+  const programs = activePrograms || DEFAULT_PROGRAMS;
+  const programA = programs['okt-a'] || DEFAULT_PROGRAMS['okt-a'];
+  const programB = programs['okt-b'] || DEFAULT_PROGRAMS['okt-b'];
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-8 animate-fadeIn">
@@ -50,11 +64,38 @@ export const ProgramGuideView: React.FC = () => {
         ))}
       </div>
 
+      {/* Active Profile Banner */}
+      {userProfile && (
+        <div className="bg-slate-900 border border-blue-500/30 rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+              <User className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-xs text-blue-400 font-bold uppercase tracking-wider block">Aktiv Profil & AI-Program</span>
+              <h4 className="font-extrabold text-slate-100 text-sm">
+                {userProfile.gender === 'mann' ? 'Mann' : userProfile.gender === 'kvinne' ? 'Kvinne' : 'Bruker'} ({userProfile.age} år, {userProfile.weightKg} kg) — {
+                  userProfile.goal === 'lopere' ? 'Styrke for Løpere' : userProfile.goal === 'helse_styrke' ? 'Generell Helse & Styrke' : userProfile.goal === 'muskelvekst' ? 'Muskelvekst & Styrke' : 'Vektnedgang & Puls'
+                }
+              </h4>
+            </div>
+          </div>
+          {onOpenProfile && (
+            <button
+              onClick={onOpenProfile}
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-md shrink-0"
+            >
+              Endre Profil / Generer nytt
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Exercises Overview: Økt A & Økt B */}
       <div className="space-y-6">
         <h2 className="text-xl font-bold text-slate-100 flex items-center space-x-2">
           <Dumbbell className="w-5 h-5 text-blue-400" />
-          <span>Øvelseskatalog & Teknikkvideoer</span>
+          <span>Ditt Skreddersydde Program & Teknikkvideoer</span>
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -66,13 +107,13 @@ export const ProgramGuideView: React.FC = () => {
                 <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-400">
                   Økt A
                 </span>
-                <h3 className="text-lg font-bold text-slate-100 mt-1">Knebøy-mønster & Horisontalt drag</h3>
+                <h3 className="text-lg font-bold text-slate-100 mt-1">{programA.title}</h3>
               </div>
               <Clock className="w-4 h-4 text-slate-500" />
             </div>
 
             <div className="space-y-3">
-              {WORKOUT_PROGRAMS['okt-a'].exercises.map((ex) => (
+              {programA.exercises.map((ex) => (
                 <div
                   key={ex.id}
                   className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between gap-3 hover:border-slate-700 transition-all"
@@ -89,13 +130,15 @@ export const ProgramGuideView: React.FC = () => {
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => setSelectedVideoExercise(ex)}
-                    className="p-2 rounded-lg bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/20 transition-colors shrink-0"
-                    title="Se instruksjonsvideo"
-                  >
-                    <PlayCircle className="w-4 h-4" />
-                  </button>
+                  {ex.videoUrl && (
+                    <button
+                      onClick={() => setSelectedVideoExercise(ex)}
+                      className="p-2 rounded-lg bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/20 transition-colors shrink-0"
+                      title="Se instruksjonsvideo"
+                    >
+                      <PlayCircle className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -108,13 +151,13 @@ export const ProgramGuideView: React.FC = () => {
                 <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-indigo-500/20 text-indigo-400">
                   Økt B
                 </span>
-                <h3 className="text-lg font-bold text-slate-100 mt-1">Hoftehengsel & Ettbeinsstyrke</h3>
+                <h3 className="text-lg font-bold text-slate-100 mt-1">{programB.title}</h3>
               </div>
               <Clock className="w-4 h-4 text-slate-500" />
             </div>
 
             <div className="space-y-3">
-              {WORKOUT_PROGRAMS['okt-b'].exercises.map((ex) => (
+              {programB.exercises.map((ex) => (
                 <div
                   key={ex.id}
                   className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between gap-3 hover:border-slate-700 transition-all"
@@ -131,13 +174,15 @@ export const ProgramGuideView: React.FC = () => {
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => setSelectedVideoExercise(ex)}
-                    className="p-2 rounded-lg bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/20 transition-colors shrink-0"
-                    title="Se instruksjonsvideo"
-                  >
-                    <PlayCircle className="w-4 h-4" />
-                  </button>
+                  {ex.videoUrl && (
+                    <button
+                      onClick={() => setSelectedVideoExercise(ex)}
+                      className="p-2 rounded-lg bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/20 transition-colors shrink-0"
+                      title="Se instruksjonsvideo"
+                    >
+                      <PlayCircle className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

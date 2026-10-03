@@ -1,21 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { Dumbbell, Calendar as CalendarIcon, Play, BarChart2, Info, Zap, Cloud, RefreshCw, AlertCircle, Check } from 'lucide-react';
+import { Dumbbell, Calendar as CalendarIcon, Play, BarChart2, Info, Zap, Cloud, RefreshCw, AlertCircle, Check, User } from 'lucide-react';
 import { APP_VERSION } from '../constants/version';
 import { subscribeSyncStatus, SyncStatus } from '../utils/cloudSync';
-import { WorkoutType } from '../types/workout';
+import { WorkoutType, UserProfile } from '../types/workout';
 
 interface NavbarProps {
   activeTab: 'calendar' | 'workout' | 'run' | 'stats' | 'guide';
   setActiveTab: (tab: 'calendar' | 'workout' | 'run' | 'stats' | 'guide') => void;
+  userProfile?: UserProfile;
   onQuickStart: (type: WorkoutType) => void;
   onOpenCloudSync: () => void;
+  onOpenProfile: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
+  userProfile,
   onQuickStart,
   onOpenCloudSync,
+  onOpenProfile,
 }) => {
   const [syncState, setSyncState] = useState<{ status: SyncStatus; lastSyncTime: string | null }>({
     status: 'idle',
@@ -102,9 +106,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </nav>
 
-            {/* Right Header Actions: Sky-Sync Status Button & QuickStarts */}
+            {/* Right Header Actions: Min Profil, Sky-Sync Status Button & QuickStarts */}
             <div className="flex items-center space-x-2.5 shrink-0">
               
+              {/* Profile Button */}
+              <button
+                onClick={onOpenProfile}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border border-blue-500/40 transition-all flex items-center space-x-1.5 shadow-sm"
+                title="Endre profil og treningsmål"
+              >
+                <User className="w-3.5 h-3.5 text-blue-400" />
+                <span className="hidden sm:inline">Min Profil ({userProfile?.age || 55} år)</span>
+                <span className="sm:hidden">Profil</span>
+              </button>
+
               {/* Sky-Sync Button (Always visible on PC and Mobile header) */}
               <button
                 onClick={onOpenCloudSync}

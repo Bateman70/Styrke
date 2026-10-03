@@ -1,9 +1,38 @@
-import { WorkoutLog, UserScheduleConfig, WorkoutType } from '../types/workout';
+import { WorkoutLog, UserScheduleConfig, WorkoutType, UserProfile } from '../types/workout';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 
 const STORAGE_KEYS = {
   LOGS: 'styrke_app_workout_logs_v1',
   SCHEDULE_CONFIG: 'styrke_app_schedule_config_v1',
+  USER_PROFILE: 'styrke_app_user_profile_v1',
+};
+
+export const DEFAULT_USER_PROFILE: UserProfile = {
+  age: 55,
+  gender: 'mann',
+  weightKg: 95,
+  goal: 'lopere',
+  experience: 'middels',
+  daysPerWeek: 2,
+  hasCompletedSetup: true,
+};
+
+export const getUserProfile = (): UserProfile => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+    if (!raw) return DEFAULT_USER_PROFILE;
+    return { ...DEFAULT_USER_PROFILE, ...JSON.parse(raw) };
+  } catch (err) {
+    return DEFAULT_USER_PROFILE;
+  }
+};
+
+export const saveUserProfile = (profile: UserProfile): void => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
+  } catch (err) {
+    console.error('Failed to save user profile', err);
+  }
 };
 
 // Load logs from LocalStorage

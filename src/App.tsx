@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { WorkoutLog, WorkoutType } from './types/workout';
-import { getStoredLogs, saveStoredLogs, generateAutoSchedule, mergeWorkoutLogs } from './utils/storage';
+import { UserProfile, WorkoutLog, WorkoutType } from './types/workout';
+import { getStoredLogs, saveStoredLogs, generateAutoSchedule, mergeWorkoutLogs, getUserProfile, saveUserProfile } from './utils/storage';
+import { generateAIWorkoutPrograms } from './utils/aiProgramGenerator';
 import { Navbar } from './components/Navbar';
 import { CalendarView } from './components/calendar/CalendarView';
 import { ActiveWorkoutView } from './components/workout/ActiveWorkoutView';
@@ -9,6 +10,7 @@ import { StatsOverview } from './components/dashboard/StatsOverview';
 import { LogRunModal } from './components/run/LogRunModal';
 import { AutoSchedulerModal } from './components/calendar/AutoSchedulerModal';
 import { CloudSyncModal } from './components/common/CloudSyncModal';
+import { ProfileModal } from './components/common/ProfileModal';
 import { WhatsNewModal } from './components/common/WhatsNewModal';
 import { autoSaveToCloud, autoFetchFromCloud, checkAndApplyUrlSupabaseConfig, CloudSyncPayload } from './utils/cloudSync';
 import { APP_VERSION, BUILD_TIME } from './constants/version';
@@ -17,7 +19,11 @@ import { format } from 'date-fns';
 export function App() {
   const [activeTab, setActiveTab] = useState<'calendar' | 'workout' | 'run' | 'stats' | 'guide'>('calendar');
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile>(getUserProfile);
   const isFirstLoad = useRef(true);
+  
+  // Dynamic AI workout programs generated based on current user profile
+  const activePrograms = generateAIWorkoutPrograms(userProfile);
   
   // State for active workout execution
   const [activeWorkoutType, setActiveWorkoutType] = useState<WorkoutType>('okt-a');
@@ -27,6 +33,7 @@ export function App() {
   const [runModalData, setRunModalData] = useState<{ date: string; existingLog?: WorkoutLog } | null>(null);
   const [isAutoSchedulerOpen, setIsAutoSchedulerOpen] = useState(false);
   const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
 
   // 1. Initial Load: Check for URL Supabase Config, load local logs, then silently auto-fetch cloud data
@@ -44,11 +51,17 @@ export function App() {
 
     // Silent background fetch from cloud
     autoFetchFromCloud().then((cloudData) => {
-      if (cloudData && cloudData.logs && cloudData.logs.length > 0) {
-        const currentLocal = getStoredLogs();
-        const merged = mergeWorkoutLogs(currentLocal, cloudData.logs);
-        setLogs(merged);
-        saveStoredLogs(merged);
+      if (cloudData) {
+        if (cloudData.logs && cloudData.logs.length > 0) {
+          const currentLocal = getStoredLogs();
+          const merged = mergeWorkoutLogs(currentLocal, cloudData.logs);
+          setLogs(merged);
+          saveStoredLogs(merged);
+        }
+        if (cloudData.userProfile) {
+          setUserProfile(cloudData.userProfile);
+          saveUserProfile(cloudData.userProfile);
+        }
       }
       isFirstLoad.current = false;
     });
@@ -63,11 +76,17 @@ export function App() {
   useEffect(() => {
     const handleFocus = () => {
       autoFetchFromCloud().then((cloudData) => {
-        if (cloudData && cloudData.logs && cloudData.logs.length > 0) {
-          const currentLocal = getStoredLogs();
-          const merged = mergeWorkoutLogs(currentLocal, cloudData.logs);
-          setLogs(merged);
-          saveStoredLogs(merged);
+        if (cloudData) {
+          if (cloudData.logs && cloudData.logs.length > 0) {
+            const currentLocal = getStoredLogs();
+            const merged = mergeWorkoutLogs(currentLocal, cloudData.logs);
+            setLogs(merged);
+            saveStoredLogs(merged);
+          }
+          if (cloudData.userProfile) {
+            setUserProfile(cloudData.userProfile);
+            saveUserProfile(cloudData.userProfile);
+          }
         }
       });
     };
@@ -87,8 +106,15 @@ export function App() {
     setLogs(updatedLogs);
     saveStoredLogs(updatedLogs);
     
-    // Automatic silent cloud save
-    autoSaveToCloud(updatedLogs);
+    // Automatic silent cloud save including profile
+    autoSaveToCloud(updatedLogs, undefined, userProfile);
+  };
+
+  // Save profile locally and trigger cloud save
+  const handleSaveProfile = (newProfile: UserProfile) => {
+    setUserProfile(newProfile);
+    saveUserProfile(newProfile);
+    autoSaveToCloud(logs, undefined, newProfile);
   };
 
   // Start a strength workout (Økt A or Økt B)
@@ -147,8 +173,12 @@ export function App() {
       const currentLocal = getStoredLogs();
       const merged = mergeWorkoutLogs(currentLocal, payload.logs);
       handleSaveLogs(merged);
-      setActiveTab('calendar');
     }
+    if (payload.userProfile) {
+      setUserProfile(payload.userProfile);
+      saveUserProfile(payload.userProfile);
+    }
+    setActiveTab('calendar');
   };
 
   return (
@@ -158,8 +188,10 @@ export function App() {
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        userProfile={userProfile}
         onQuickStart={(type) => handleStartWorkout(type, format(new Date(), 'yyyy-MM-dd'))}
         onOpenCloudSync={() => setIsCloudSyncOpen(true)}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
       />
 
       {/* Main View Area with padding for fixed bars */}
@@ -178,6 +210,7 @@ export function App() {
           <ActiveWorkoutView
             workoutType={activeWorkoutType}
             existingLog={activeLogToEdit}
+            activePrograms={activePrograms}
             onSaveLog={handleSaveWorkoutLog}
             onCancel={() => setActiveTab('calendar')}
           />
@@ -185,13 +218,19 @@ export function App() {
 
         {activeTab === 'stats' && <StatsOverview logs={logs} />}
 
-        {activeTab === 'guide' && <ProgramGuideView />}
+        {activeTab === 'guide' && (
+          <ProgramGuideView
+            activePrograms={activePrograms}
+            userProfile={userProfile}
+            onOpenProfile={() => setIsProfileModalOpen(true)}
+          />
+        )}
       </main>
 
       {/* Footer with App Version & Build Time */}
       <footer className="bg-slate-900/80 border-t border-slate-800/80 py-4 text-center text-xs text-slate-400">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>Styrketreningsprogram for Løpere (55 år) • Web App</span>
+          <span>Styrke & Løp Treningsapp • Tilpasset din profil</span>
           <button
             onClick={() => setIsWhatsNewOpen(true)}
             className="font-mono text-[11px] text-blue-400 hover:text-blue-300 bg-blue-950/60 hover:bg-blue-900/80 px-2.5 py-1 rounded-full border border-blue-800/40 transition-colors cursor-pointer flex items-center space-x-1"
@@ -201,6 +240,15 @@ export function App() {
           </button>
         </div>
       </footer>
+
+      {/* Profile Modal */}
+      {isProfileModalOpen && (
+        <ProfileModal
+          currentProfile={userProfile}
+          onSaveProfile={handleSaveProfile}
+          onClose={() => setIsProfileModalOpen(false)}
+        />
+      )}
 
       {/* What's New Release Modal */}
       {isWhatsNewOpen && (

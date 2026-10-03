@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 interface ActiveWorkoutViewProps {
   workoutType: WorkoutType;
   existingLog?: WorkoutLog;
+  activePrograms?: Record<string, WorkoutProgram>;
   onSaveLog: (log: WorkoutLog) => void;
   onCancel: () => void;
 }
@@ -16,11 +17,13 @@ interface ActiveWorkoutViewProps {
 export const ActiveWorkoutView: React.FC<ActiveWorkoutViewProps> = ({
   workoutType,
   existingLog,
+  activePrograms,
   onSaveLog,
   onCancel,
 }) => {
   const safeWorkoutType = (workoutType === 'lop' ? 'okt-a' : workoutType) as 'okt-a' | 'okt-b' | 'fri-okt';
-  const selectedProgram: WorkoutProgram = WORKOUT_PROGRAMS[safeWorkoutType] || WORKOUT_PROGRAMS['okt-a'];
+  const programs = activePrograms || WORKOUT_PROGRAMS;
+  const selectedProgram: WorkoutProgram = programs[safeWorkoutType] || programs['okt-a'];
 
   const [activeVideoExercise, setActiveVideoExercise] = useState<Exercise | null>(null);
   

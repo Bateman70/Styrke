@@ -57,6 +57,26 @@ export interface WorkoutLog {
   notes?: string;
 }
 
+export type Gender = 'mann' | 'kvinne' | 'annet';
+
+export type FitnessGoal = 
+  | 'lopere'          // Styrke for løpere (skadeforebygging & beinstyrke)
+  | 'helse_styrke'    // Generell helse, rygg/kjerne & funksjonell hverdagsstyrke
+  | 'muskelvekst'     // Styrkeøkning & muskelbygging
+  | 'vektnedgang';    // Høyere tempo, supersett & forbrenning
+
+export type ExperienceLevel = 'nybegynner' | 'middels' | 'viderekommen';
+
+export interface UserProfile {
+  age: number;             // Eks: 55, 30, 42
+  gender: Gender;          // Mann / Kvinne / Annet
+  weightKg: number;        // Eks: 95, 70, 80
+  goal: FitnessGoal;       // Primært treningsmål
+  experience: ExperienceLevel;
+  daysPerWeek: number;     // 2, 3 eller 4 dager/uke
+  hasCompletedSetup?: boolean;
+}
+
 export interface UserScheduleConfig {
   frequency: 2 | 3; // 2 or 3 days/week
   startDate: string; // YYYY-MM-DD
