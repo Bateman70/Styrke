@@ -78,6 +78,8 @@ export interface UserProfile {
   experience: ExperienceLevel;
   daysPerWeek: number;     // 2, 3 eller 4 dager/uke
   hasCompletedSetup?: boolean;
+  myStrydeUsername?: string; // F.eks. "Jostein" eller PIN-kode for automatisk sync til MyStryde
+  autoSyncToMyStryde?: boolean; // Default true hvis brukernavn er satt
 }
 
 export interface UserScheduleConfig {

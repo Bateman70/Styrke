@@ -13,14 +13,16 @@ import { CloudSyncModal } from './components/common/CloudSyncModal';
 import { ProfileModal } from './components/common/ProfileModal';
 import { WhatsNewModal } from './components/common/WhatsNewModal';
 import { autoSaveToCloud, autoFetchFromCloud, checkAndApplyUrlSupabaseConfig, CloudSyncPayload } from './utils/cloudSync';
+import { syncWorkoutToMyStryde } from './utils/myStrydeSync';
 import { APP_VERSION, BUILD_TIME } from './constants/version';
 import { format } from 'date-fns';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, CheckCircle2, Zap } from 'lucide-react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'calendar' | 'workout' | 'run' | 'stats' | 'guide'>('calendar');
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile>(getUserProfile);
+  const [myStrydeToast, setMyStrydeToast] = useState<string | null>(null);
   const isFirstLoad = useRef(true);
   
   // Dynamic AI workout programs generated based on current user profile
@@ -155,6 +157,19 @@ export function App() {
     }
 
     handleSaveLogs(updated);
+
+    // Auto-sync to MyStryde if user profile is connected
+    if (logToSave.status === 'completed' && userProfile.myStrydeUsername && userProfile.autoSyncToMyStryde !== false) {
+      const currentProgram = (logToSave.type in activePrograms)
+        ? activePrograms[logToSave.type as 'okt-a' | 'okt-b' | 'fri-okt']?.title
+        : undefined;
+      syncWorkoutToMyStryde(logToSave, userProfile, currentProgram).then((res) => {
+        if (res.success) {
+          setMyStrydeToast(res.message);
+          setTimeout(() => setMyStrydeToast(null), 4500);
+        }
+      });
+    }
   };
 
   // Save run log
@@ -170,6 +185,16 @@ export function App() {
     }
 
     handleSaveLogs(updated);
+
+    // Auto-sync to MyStryde if user profile is connected
+    if (runLog.status === 'completed' && userProfile.myStrydeUsername && userProfile.autoSyncToMyStryde !== false) {
+      syncWorkoutToMyStryde(runLog, userProfile).then((res) => {
+        if (res.success) {
+          setMyStrydeToast(res.message);
+          setTimeout(() => setMyStrydeToast(null), 4500);
+        }
+      });
+    }
   };
 
   // Delete a workout log
@@ -214,6 +239,22 @@ export function App() {
 
       {/* Main View Area with padding for fixed bars */}
       <main className="flex-grow pt-20 pb-24 md:pb-12">
+
+        {/* MyStryde Sync Toast Notification */}
+        {myStrydeToast && (
+          <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 max-w-md w-[92%] animate-bounce">
+            <div className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 border border-cyan-400/30">
+              <Zap className="w-5 h-5 text-yellow-300 shrink-0" />
+              <div className="text-xs font-bold flex-grow">{myStrydeToast}</div>
+              <button
+                onClick={() => setMyStrydeToast(null)}
+                className="text-cyan-200 hover:text-white text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Active Program Sub-Header Banner */}
         {userProfile && (

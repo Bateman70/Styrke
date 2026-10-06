@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { UserProfile, FitnessGoal, Gender, ExperienceLevel, WorkoutProgram, WorkoutType, TrainingLocation } from '../../types/workout';
 import { generateAIWorkoutPrograms } from '../../utils/aiProgramGenerator';
-import { User, Target, Sparkles, CheckCircle2, X, Activity, Dumbbell, ShieldCheck, Flame, Home, Building2, Repeat, Calendar as CalendarIcon } from 'lucide-react';
+import { testMyStrydeConnection } from '../../utils/myStrydeSync';
+import { User, Target, Sparkles, CheckCircle2, X, Activity, Dumbbell, ShieldCheck, Flame, Home, Building2, Repeat, Calendar as CalendarIcon, Link2, Loader2, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface ProfileModalProps {
@@ -25,6 +26,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
   const [location, setLocation] = useState<TrainingLocation>(currentProfile.location || 'senter');
   const [experience, setExperience] = useState<ExperienceLevel>(currentProfile.experience || 'middels');
   const [daysPerWeek, setDaysPerWeek] = useState<number>(currentProfile.daysPerWeek || 2);
+  const [myStrydeUsername, setMyStrydeUsername] = useState<string>(() => currentProfile.myStrydeUsername || '');
+  const [isTestingStryde, setIsTestingStryde] = useState(false);
+  const [strydeStatus, setStrydeStatus] = useState<{ success: boolean; message: string } | null>(null);
 
   // Schedule setup state for step 3 activation
   const [startDate, setStartDate] = useState<string>(() => format(new Date(), 'yyyy-MM-dd'));
@@ -46,6 +50,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
     return Math.min(200, Math.max(30, val));
   };
 
+  const handleTestMyStryde = async () => {
+    if (!myStrydeUsername.trim()) {
+      setStrydeStatus({ success: false, message: 'Skriv inn et MyStryde-navn eller PIN først.' });
+      return;
+    }
+    setIsTestingStryde(true);
+    setStrydeStatus(null);
+    const result = await testMyStrydeConnection(myStrydeUsername);
+    setIsTestingStryde(false);
+    setStrydeStatus(result);
+  };
+
   const handleGenerate = () => {
     const age = getValidAge();
     const weightKg = getValidWeight();
@@ -59,6 +75,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
       experience,
       daysPerWeek,
       hasCompletedSetup: true,
+      myStrydeUsername: myStrydeUsername.trim() || undefined,
+      autoSyncToMyStryde: true,
     };
 
     const programs = generateAIWorkoutPrograms(updatedProfile);
@@ -79,6 +97,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
       experience,
       daysPerWeek,
       hasCompletedSetup: true,
+      myStrydeUsername: myStrydeUsername.trim() || undefined,
+      autoSyncToMyStryde: true,
     };
 
     const programs = previewPrograms || generateAIWorkoutPrograms(updatedProfile);
@@ -226,6 +246,62 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* MyStryde Integration Card */}
+              <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-3">
+                <div className="flex items-center space-x-2 text-cyan-400">
+                  <Link2 className="w-4 h-4" />
+                  <span className="text-xs font-bold uppercase tracking-wider">MyStryde-synkronisering (Valgfritt)</span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Koble sammen med MyStryde (app.mystryde.no) slik at fullførte styrke- og løpeøkter automatisk gir deg poeng og logges i MyStryde!
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={myStrydeUsername}
+                    onChange={(e) => {
+                      setMyStrydeUsername(e.target.value);
+                      setStrydeStatus(null);
+                    }}
+                    placeholder="Ditt MyStryde fornavn (f.eks. Jostein)"
+                    className="flex-grow px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-100 text-xs font-bold focus:outline-none focus:border-cyan-500 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleTestMyStryde}
+                    disabled={isTestingStryde || !myStrydeUsername.trim()}
+                    className="px-4 py-2 bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300 border border-cyan-500/40 rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center space-x-1 shrink-0"
+                  >
+                    {isTestingStryde ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Tester...</span>
+                      </>
+                    ) : (
+                      <span>Test tilkobling</span>
+                    )}
+                  </button>
+                </div>
+
+                {strydeStatus && (
+                  <div
+                    className={`text-xs p-2.5 rounded-xl border flex items-center space-x-2 ${
+                      strydeStatus.success
+                        ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
+                        : 'bg-rose-950/40 border-rose-500/30 text-rose-300'
+                    }`}
+                  >
+                    {strydeStatus.success ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    )}
+                    <span>{strydeStatus.message}</span>
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 flex justify-end">
