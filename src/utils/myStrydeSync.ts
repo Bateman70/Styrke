@@ -150,3 +150,55 @@ export async function syncWorkoutToMyStryde(
     };
   }
 }
+
+/**
+ * Automatically delete an activity in MyStryde if deleted in MyStrength
+ */
+export async function deleteWorkoutFromMyStryde(
+  workout: WorkoutLog,
+  profile: UserProfile
+): Promise<MyStrydeSyncResult> {
+  const targetUser = profile.myStrydeUsername?.trim();
+  if (!targetUser) {
+    return { success: false, message: 'Ingen MyStryde-bruker konfigurert.' };
+  }
+
+  try {
+    const isRun = workout.type === 'lop';
+    const isPin = /^\d+$/.test(targetUser);
+
+    const payload = {
+      action: 'delete',
+      userName: isPin ? undefined : targetUser,
+      userPin: isPin ? targetUser : undefined,
+      type: isRun ? 'Løpetur' : 'Styrke',
+      date: workout.date,
+    };
+
+    const res = await fetch(MYSTRYDE_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      return {
+        success: true,
+        message: data.message || 'Slettet fra MyStryde.',
+      };
+    } else {
+      return {
+        success: false,
+        message: data.error || 'Kunne ikke slette fra MyStryde.',
+      };
+    }
+  } catch (err: any) {
+    console.error('MyStryde delete error:', err);
+    return {
+      success: false,
+      message: 'Nettverksfeil under sletting i MyStryde.',
+    };
+  }
+}
+

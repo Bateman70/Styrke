@@ -13,7 +13,7 @@ import { CloudSyncModal } from './components/common/CloudSyncModal';
 import { ProfileModal } from './components/common/ProfileModal';
 import { WhatsNewModal } from './components/common/WhatsNewModal';
 import { autoSaveToCloud, autoFetchFromCloud, checkAndApplyUrlSupabaseConfig, CloudSyncPayload } from './utils/cloudSync';
-import { syncWorkoutToMyStryde } from './utils/myStrydeSync';
+import { syncWorkoutToMyStryde, deleteWorkoutFromMyStryde } from './utils/myStrydeSync';
 import { APP_VERSION, BUILD_TIME } from './constants/version';
 import { format } from 'date-fns';
 import { Sparkles, CheckCircle2, Zap } from 'lucide-react';
@@ -199,8 +199,19 @@ export function App() {
 
   // Delete a workout log
   const handleDeleteLog = (id: string) => {
+    const logToDelete = logs.find((l) => l.id === id);
     const updated = logs.filter((l) => l.id !== id);
     handleSaveLogs(updated);
+
+    // If deleted workout was completed and MyStryde is connected, delete in MyStryde too
+    if (logToDelete && logToDelete.status === 'completed' && userProfile.myStrydeUsername && userProfile.autoSyncToMyStryde !== false) {
+      deleteWorkoutFromMyStryde(logToDelete, userProfile).then((res) => {
+        if (res.success && res.message) {
+          setMyStrydeToast(res.message);
+          setTimeout(() => setMyStrydeToast(null), 4000);
+        }
+      });
+    }
   };
 
   // Auto Schedule generation with custom selected days
