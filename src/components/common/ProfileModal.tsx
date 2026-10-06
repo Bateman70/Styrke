@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { UserProfile, FitnessGoal, Gender, ExperienceLevel, WorkoutProgram, WorkoutType, TrainingLocation } from '../../types/workout';
 import { generateAIWorkoutPrograms } from '../../utils/aiProgramGenerator';
+import { saveUserProfile } from '../../utils/storage';
 import { testMyStrydeConnection } from '../../utils/myStrydeSync';
-import { User, Target, Sparkles, CheckCircle2, X, Activity, Dumbbell, ShieldCheck, Flame, Home, Building2, Repeat, Calendar as CalendarIcon, Link2, Loader2, AlertCircle } from 'lucide-react';
+import { User, Target, Sparkles, CheckCircle2, X, Activity, Dumbbell, ShieldCheck, Flame, Home, Building2, Repeat, Calendar as CalendarIcon, Link2, Loader2, AlertCircle, Check } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface ProfileModalProps {
@@ -28,7 +29,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
   const [daysPerWeek, setDaysPerWeek] = useState<number>(currentProfile.daysPerWeek || 2);
   const [myStrydeUsername, setMyStrydeUsername] = useState<string>(() => currentProfile.myStrydeUsername || '');
   const [isTestingStryde, setIsTestingStryde] = useState(false);
-  const [strydeStatus, setStrydeStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [strydeStatus, setStrydeStatus] = useState<{ success: boolean; message: string } | null>(() => {
+    if (currentProfile.myStrydeUsername) {
+      return { success: true, message: `Koblet til MyStryde som ${currentProfile.myStrydeUsername}` };
+    }
+    return null;
+  });
 
   // Schedule setup state for step 3 activation
   const [startDate, setStartDate] = useState<string>(() => format(new Date(), 'yyyy-MM-dd'));
@@ -50,16 +56,58 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
     return Math.min(200, Math.max(30, val));
   };
 
-  const handleTestMyStryde = async () => {
-    if (!myStrydeUsername.trim()) {
-      setStrydeStatus({ success: false, message: 'Skriv inn et MyStryde-navn eller PIN først.' });
+  const handleConnectMyStryde = async () => {
+    const clean = myStrydeUsername.trim();
+    if (!clean) {
+      setStrydeStatus({ success: false, message: 'Skriv inn ditt MyStryde fornavn eller PIN først.' });
       return;
     }
     setIsTestingStryde(true);
     setStrydeStatus(null);
-    const result = await testMyStrydeConnection(myStrydeUsername);
+    const result = await testMyStrydeConnection(clean);
     setIsTestingStryde(false);
     setStrydeStatus(result);
+
+    if (result.success) {
+      const updatedProfile: UserProfile = {
+        ...currentProfile,
+        age: getValidAge(),
+        gender,
+        weightKg: getValidWeight(),
+        experience,
+        myStrydeUsername: clean,
+        autoSyncToMyStryde: true,
+      };
+      saveUserProfile(updatedProfile);
+      onSaveProfile(updatedProfile); // Lagres umiddelbart uten å endre kalenderplan
+    }
+  };
+
+  const handleDisconnectMyStryde = () => {
+    setMyStrydeUsername('');
+    setStrydeStatus({ success: true, message: 'Frakoblet fra MyStryde.' });
+    const updatedProfile: UserProfile = {
+      ...currentProfile,
+      myStrydeUsername: undefined,
+      autoSyncToMyStryde: false,
+    };
+    saveUserProfile(updatedProfile);
+    onSaveProfile(updatedProfile);
+  };
+
+  const handleQuickSaveProfile = () => {
+    const updatedProfile: UserProfile = {
+      ...currentProfile,
+      age: getValidAge(),
+      gender,
+      weightKg: getValidWeight(),
+      experience,
+      myStrydeUsername: myStrydeUsername.trim() || undefined,
+      autoSyncToMyStryde: true,
+    };
+    saveUserProfile(updatedProfile);
+    onSaveProfile(updatedProfile);
+    onClose();
   };
 
   const handleGenerate = () => {
@@ -249,13 +297,20 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
               </div>
 
               {/* MyStryde Integration Card */}
-              <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-3">
-                <div className="flex items-center space-x-2 text-cyan-400">
-                  <Link2 className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider">MyStryde-synkronisering (Valgfritt)</span>
+              <div className="p-4 bg-slate-950/90 border border-cyan-900/40 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-cyan-400">
+                    <Link2 className="w-4 h-4" />
+                    <span className="text-xs font-bold uppercase tracking-wider">MyStryde-synkronisering</span>
+                  </div>
+                  {currentProfile.myStrydeUsername && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+                      Tilkoblet
+                    </span>
+                  )}
                 </div>
-                <p className="text-[11px] text-slate-400">
-                  Koble sammen med MyStryde (app.mystryde.no) slik at fullførte styrke- og løpeøkter automatisk gir deg poeng og logges i MyStryde!
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Fullførte styrke- og løpeøkter overføres automatisk til <strong className="text-slate-200">app.mystryde.no</strong> for logg og poeng på ledertavlen.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -267,31 +322,46 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
                       setStrydeStatus(null);
                     }}
                     placeholder="Ditt MyStryde fornavn (f.eks. Jostein)"
-                    className="flex-grow px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-100 text-xs font-bold focus:outline-none focus:border-cyan-500 transition-colors"
+                    className="flex-grow px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-100 text-xs font-bold focus:outline-none focus:border-cyan-500 transition-colors"
                   />
-                  <button
-                    type="button"
-                    onClick={handleTestMyStryde}
-                    disabled={isTestingStryde || !myStrydeUsername.trim()}
-                    className="px-4 py-2 bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-300 border border-cyan-500/40 rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center space-x-1 shrink-0"
-                  >
-                    {isTestingStryde ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Tester...</span>
-                      </>
-                    ) : (
-                      <span>Test tilkobling</span>
+                  <div className="flex space-x-2">
+                    <button
+                      type="button"
+                      onClick={handleConnectMyStryde}
+                      disabled={isTestingStryde || !myStrydeUsername.trim()}
+                      className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center space-x-1.5 shrink-0 shadow-md cursor-pointer"
+                    >
+                      {isTestingStryde ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Kobler til...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Koble til</span>
+                        </>
+                      )}
+                    </button>
+                    {currentProfile.myStrydeUsername && (
+                      <button
+                        type="button"
+                        onClick={handleDisconnectMyStryde}
+                        className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        title="Koble fra MyStryde"
+                      >
+                        Koble fra
+                      </button>
                     )}
-                  </button>
+                  </div>
                 </div>
 
                 {strydeStatus && (
                   <div
                     className={`text-xs p-2.5 rounded-xl border flex items-center space-x-2 ${
                       strydeStatus.success
-                        ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
-                        : 'bg-rose-950/40 border-rose-500/30 text-rose-300'
+                        ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+                        : 'bg-rose-950/60 border-rose-500/40 text-rose-300'
                     }`}
                   >
                     {strydeStatus.success ? (
@@ -299,18 +369,26 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
                     ) : (
                       <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                     )}
-                    <span>{strydeStatus.message}</span>
+                    <span className="font-semibold">{strydeStatus.message}</span>
                   </div>
                 )}
               </div>
 
-              <div className="pt-4 flex justify-end">
+              <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-800/80">
+                <button
+                  type="button"
+                  onClick={handleQuickSaveProfile}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all border border-slate-700"
+                >
+                  Lagre & Lukk (Behold gjeldende plan)
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-md"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-md"
                 >
-                  Neste: Velg Treningsmål →
+                  Neste: Endre Treningsmål / Generer Nytt →
                 </button>
               </div>
             </div>

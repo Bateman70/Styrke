@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Cloud, CloudUpload, CloudDownload, Copy, Check, AlertCircle, Key, FileJson, Database, Link, Sparkles, Share2 } from 'lucide-react';
+import { X, Cloud, CloudUpload, CloudDownload, Copy, Check, CheckCircle2, AlertCircle, Key, FileJson, Database, Link, Sparkles, Share2, Link2, Loader2 } from 'lucide-react';
 import {
   uploadToCloudDetails,
   downloadFromCloudDetails,
@@ -12,7 +12,8 @@ import {
   setActiveSyncKey,
 } from '../../utils/cloudSync';
 import { WorkoutLog, UserScheduleConfig, UserProfile } from '../../types/workout';
-import { getUserProfile } from '../../utils/storage';
+import { getUserProfile, saveUserProfile } from '../../utils/storage';
+import { testMyStrydeConnection } from '../../utils/myStrydeSync';
 
 interface CloudSyncModalProps {
   logs: WorkoutLog[];
@@ -35,6 +36,16 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
   
   const [supabaseUrl, setSupabaseUrl] = useState(() => getSupabaseConfig()?.url || '');
   const [supabaseKey, setSupabaseKey] = useState(() => getSupabaseConfig()?.anonKey || '');
+
+  const activeProfile = userProfile || getUserProfile();
+  const [myStrydeName, setMyStrydeName] = useState(() => activeProfile.myStrydeUsername || '');
+  const [isTestingStryde, setIsTestingStryde] = useState(false);
+  const [strydeStatus, setStrydeStatus] = useState<{ success: boolean; message: string } | null>(() => {
+    if (activeProfile.myStrydeUsername) {
+      return { success: true, message: `Koblet til MyStryde som ${activeProfile.myStrydeUsername}` };
+    }
+    return null;
+  });
 
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -76,6 +87,53 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
     setStatusMsg({
       type: 'success',
       text: 'Sky-ID er koblet til! Trykk "2. Hent fra skyen" for å hente alle dataene dine.',
+    });
+  };
+
+  const handleConnectMyStryde = async () => {
+    const clean = myStrydeName.trim();
+    if (!clean) {
+      setStrydeStatus({ success: false, message: 'Skriv inn ditt MyStryde fornavn eller PIN først.' });
+      return;
+    }
+    setIsTestingStryde(true);
+    setStrydeStatus(null);
+    const result = await testMyStrydeConnection(clean);
+    setIsTestingStryde(false);
+    setStrydeStatus(result);
+
+    if (result.success) {
+      const updatedProfile: UserProfile = {
+        ...activeProfile,
+        myStrydeUsername: clean,
+        autoSyncToMyStryde: true,
+      };
+      saveUserProfile(updatedProfile);
+      onApplyCloudData({
+        syncCode: getActiveSyncKey(),
+        updatedAt: new Date().toISOString(),
+        logs,
+        scheduleConfig,
+        userProfile: updatedProfile,
+      });
+    }
+  };
+
+  const handleDisconnectMyStryde = () => {
+    setMyStrydeName('');
+    setStrydeStatus({ success: true, message: 'Frakoblet fra MyStryde.' });
+    const updatedProfile: UserProfile = {
+      ...activeProfile,
+      myStrydeUsername: undefined,
+      autoSyncToMyStryde: false,
+    };
+    saveUserProfile(updatedProfile);
+    onApplyCloudData({
+      syncCode: getActiveSyncKey(),
+      updatedAt: new Date().toISOString(),
+      logs,
+      scheduleConfig,
+      userProfile: updatedProfile,
     });
   };
 
@@ -280,6 +338,84 @@ create policy "Allow public access" on public.workout_sync for all using (true) 
               <span>{statusMsg.text}</span>
             </div>
           )}
+
+          {/* MyStryde Cross-App Auto Sync Card */}
+          <div className="p-4 bg-slate-950/90 border border-cyan-900/40 rounded-2xl space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-cyan-400">
+                <Link2 className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-wider">MyStryde-synkronisering</span>
+              </div>
+              {activeProfile.myStrydeUsername && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+                  Tilkoblet
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Fullførte styrke- og løpeøkter overføres automatisk til <strong className="text-slate-200">app.mystryde.no</strong> for logg og poeng på ledertavlen.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={myStrydeName}
+                onChange={(e) => {
+                  setMyStrydeName(e.target.value);
+                  setStrydeStatus(null);
+                }}
+                placeholder="Ditt MyStryde fornavn (f.eks. Jostein)"
+                className="flex-grow px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-100 text-xs font-bold focus:outline-none focus:border-cyan-500 transition-colors"
+              />
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={handleConnectMyStryde}
+                  disabled={isTestingStryde || !myStrydeName.trim()}
+                  className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center space-x-1.5 shrink-0 shadow-md cursor-pointer"
+                >
+                  {isTestingStryde ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Kobler til...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Koble til</span>
+                    </>
+                  )}
+                </button>
+                {activeProfile.myStrydeUsername && (
+                  <button
+                    type="button"
+                    onClick={handleDisconnectMyStryde}
+                    className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    title="Koble fra MyStryde"
+                  >
+                    Koble fra
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {strydeStatus && (
+              <div
+                className={`text-xs p-2.5 rounded-xl border flex items-center space-x-2 ${
+                  strydeStatus.success
+                    ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+                    : 'bg-rose-950/60 border-rose-500/40 text-rose-300'
+                }`}
+              >
+                {strydeStatus.success ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                )}
+                <span className="font-semibold">{strydeStatus.message}</span>
+              </div>
+            )}
+          </div>
 
           {/* Optional Supabase DB Config Toggle */}
           <div className="pt-2 border-t border-slate-800">
