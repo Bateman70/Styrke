@@ -253,7 +253,7 @@ export function App() {
             activePrograms={activePrograms}
             onStartWorkout={(type, date, existingLog) => handleStartWorkout(type, date, existingLog)}
             onLogRun={(date, existingLog) => setRunModalData({ date, existingLog })}
-            onOpenAutoScheduler={() => setIsAutoSchedulerOpen(true)}
+            onOpenAutoScheduler={() => setIsProfileModalOpen(true)}
             onDeleteLog={handleDeleteLog}
           />
         )}

@@ -164,7 +164,7 @@ export const PlanListView: React.FC<PlanListViewProps> = ({
             <div className="text-center py-10 bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl p-6">
               <Clock className="w-10 h-10 text-slate-600 mx-auto mb-2 opacity-50" />
               <p className="text-sm text-slate-400 font-medium">Ingen planlagte økter i denne kategorien.</p>
-              <p className="text-xs text-slate-500 mt-1">Trykk på «Generer ukesplan» eller legg til økter i kalenderen!</p>
+              <p className="text-xs text-slate-500 mt-1">Trykk på «Generer AI Treningsplan» eller legg til økter i kalenderen!</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

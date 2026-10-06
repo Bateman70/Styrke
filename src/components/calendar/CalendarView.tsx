@@ -133,7 +133,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold text-xs transition-all shadow-md shadow-blue-600/20 flex items-center justify-center space-x-1.5 shrink-0"
           >
             <Sparkles className="w-4 h-4" />
-            <span>Generer ukesplan</span>
+            <span>Generer AI Treningsplan</span>
           </button>
         </div>
 
