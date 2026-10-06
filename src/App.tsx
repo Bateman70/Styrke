@@ -92,13 +92,16 @@ export function App() {
       });
     };
 
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', () => {
+    const handleVisibility = () => {
       if (document.visibilityState === 'visible') handleFocus();
-    });
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
@@ -247,6 +250,7 @@ export function App() {
         {activeTab === 'calendar' && (
           <CalendarView
             logs={logs}
+            activePrograms={activePrograms}
             onStartWorkout={(type, date, existingLog) => handleStartWorkout(type, date, existingLog)}
             onLogRun={(date, existingLog) => setRunModalData({ date, existingLog })}
             onOpenAutoScheduler={() => setIsAutoSchedulerOpen(true)}

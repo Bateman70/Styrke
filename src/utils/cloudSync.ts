@@ -140,7 +140,11 @@ export function getActiveSyncKey(): string {
   if (stored && stored.trim()) {
     return stored.trim().toLowerCase();
   }
-  return DEFAULT_SYNC_KEY;
+  // Generate a memorable unique code for a new device on first install
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const newKey = `styrke-${randomSuffix}`;
+  localStorage.setItem('styrke_app_auto_sync_key', newKey);
+  return newKey;
 }
 
 export function setActiveSyncKey(key: string): void {

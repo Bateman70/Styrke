@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { WorkoutLog, WorkoutType } from '../../types/workout';
+import { WorkoutLog, WorkoutType, WorkoutProgram } from '../../types/workout';
 import { WORKOUT_PROGRAMS } from '../../data/workoutProgramData';
 import { PlanListView } from './PlanListView';
 import {
@@ -32,6 +32,7 @@ import {
 
 interface CalendarViewProps {
   logs: WorkoutLog[];
+  activePrograms?: Record<'okt-a' | 'okt-b' | 'fri-okt', WorkoutProgram>;
   onStartWorkout: (type: WorkoutType, date: string, existingLog?: WorkoutLog) => void;
   onLogRun: (date: string, existingLog?: WorkoutLog) => void;
   onOpenAutoScheduler: () => void;
@@ -40,6 +41,7 @@ interface CalendarViewProps {
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
   logs,
+  activePrograms,
   onStartWorkout,
   onLogRun,
   onOpenAutoScheduler,
@@ -141,6 +143,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       {viewMode === 'list' ? (
         <PlanListView
           logs={logs}
+          activePrograms={activePrograms}
           onStartWorkout={onStartWorkout}
           onLogRun={onLogRun}
           onDeleteLog={onDeleteLog}
@@ -294,7 +297,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     const isCompleted = log.status === 'completed';
 
                     if (log.type === 'okt-a' || log.type === 'okt-b' || log.type === 'fri-okt') {
-                      const program = WORKOUT_PROGRAMS[log.type];
+                      const program = activePrograms?.[log.type] || WORKOUT_PROGRAMS[log.type];
                       const badgeLabel = log.type === 'okt-a' ? 'Økt A' : log.type === 'okt-b' ? 'Økt B' : 'Fri-økt';
                       const badgeColor = log.type === 'okt-a' ? 'bg-emerald-500/20 text-emerald-400' : log.type === 'okt-b' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-purple-500/20 text-purple-400';
 

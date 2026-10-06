@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { WorkoutLog, WorkoutType } from '../../types/workout';
+import { WorkoutLog, WorkoutType, WorkoutProgram } from '../../types/workout';
 import { WORKOUT_PROGRAMS } from '../../data/workoutProgramData';
 import {
   CheckCircle2,
@@ -17,6 +17,7 @@ import { nb } from 'date-fns/locale';
 
 interface PlanListViewProps {
   logs: WorkoutLog[];
+  activePrograms?: Record<'okt-a' | 'okt-b' | 'fri-okt', WorkoutProgram>;
   onStartWorkout: (type: WorkoutType, date: string, existingLog?: WorkoutLog) => void;
   onLogRun: (date: string, existingLog?: WorkoutLog) => void;
   onDeleteLog: (id: string) => void;
@@ -26,6 +27,7 @@ export type FilterType = 'all' | 'strength' | 'run' | 'scheduled' | 'completed';
 
 export const PlanListView: React.FC<PlanListViewProps> = ({
   logs,
+  activePrograms,
   onStartWorkout,
   onLogRun,
   onDeleteLog,
@@ -170,7 +172,7 @@ export const PlanListView: React.FC<PlanListViewProps> = ({
                 const isTodayDate = log.date === format(new Date(), 'yyyy-MM-dd');
 
                 if (log.type === 'okt-a' || log.type === 'okt-b' || log.type === 'fri-okt') {
-                  const program = WORKOUT_PROGRAMS[log.type];
+                  const program = activePrograms?.[log.type] || WORKOUT_PROGRAMS[log.type];
                   const badgeLabel = log.type === 'okt-a' ? 'Økt A' : log.type === 'okt-b' ? 'Økt B' : 'Fri-økt';
                   const badgeColor = log.type === 'okt-a'
                     ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
@@ -317,7 +319,7 @@ export const PlanListView: React.FC<PlanListViewProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {completedLogs.map((log) => {
                 if (log.type === 'okt-a' || log.type === 'okt-b' || log.type === 'fri-okt') {
-                  const program = WORKOUT_PROGRAMS[log.type];
+                  const program = activePrograms?.[log.type] || WORKOUT_PROGRAMS[log.type];
                   const badgeLabel = log.type === 'okt-a' ? 'Økt A Fullført' : log.type === 'okt-b' ? 'Økt B Fullført' : 'Fri-økt Fullført';
                   const cardBg = log.type === 'fri-okt'
                     ? 'bg-purple-950/20 border-purple-800/40 text-purple-200'
