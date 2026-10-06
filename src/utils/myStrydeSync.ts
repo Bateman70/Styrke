@@ -117,6 +117,7 @@ export async function syncWorkoutToMyStryde(
       durationMinutes,
       distanceKm,
       date: workout.date,
+      completedAt: workout.completedAt || new Date().toISOString(),
       note: formattedNote,
       source: 'MyStrength',
     };
