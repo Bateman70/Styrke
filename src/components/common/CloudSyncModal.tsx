@@ -11,11 +11,13 @@ import {
   getActiveSyncKey,
   setActiveSyncKey,
 } from '../../utils/cloudSync';
-import { WorkoutLog, UserScheduleConfig } from '../../types/workout';
+import { WorkoutLog, UserScheduleConfig, UserProfile } from '../../types/workout';
+import { getUserProfile } from '../../utils/storage';
 
 interface CloudSyncModalProps {
   logs: WorkoutLog[];
   scheduleConfig?: UserScheduleConfig;
+  userProfile?: UserProfile;
   onApplyCloudData: (payload: CloudSyncPayload) => void;
   onClose: () => void;
 }
@@ -23,6 +25,7 @@ interface CloudSyncModalProps {
 export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
   logs,
   scheduleConfig,
+  userProfile,
   onApplyCloudData,
   onClose,
 }) => {
@@ -95,7 +98,8 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
     setStatusMsg(null);
 
     setActiveSyncKey(syncCode);
-    const result = await uploadToCloudDetails(syncCode, logs, scheduleConfig);
+    const profileToUpload = userProfile || getUserProfile();
+    const result = await uploadToCloudDetails(syncCode, logs, scheduleConfig, profileToUpload);
     setLoading(false);
 
     if (result.success) {

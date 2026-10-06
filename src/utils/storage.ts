@@ -36,12 +36,69 @@ export const saveUserProfile = (profile: UserProfile): void => {
   }
 };
 
-// Load logs from LocalStorage
+// Clean and deduplicate workout logs:
+// 1. All completed logs are 100% preserved.
+// 2. Past uncompleted scheduled workouts (< today) are pruned.
+// 3. Duplicate scheduled workouts on the same date are deduplicated.
+export const cleanAndDeduplicateLogs = (logs: WorkoutLog[]): WorkoutLog[] => {
+  if (!Array.isArray(logs)) return [];
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  const completedMap = new Map<string, WorkoutLog>();
+  const scheduledMap = new Map<string, WorkoutLog>();
+
+  logs.forEach((log) => {
+    if (!log || !log.date || !log.type) return;
+
+    const key = `${log.date}_${log.type}`;
+
+    if (log.status === 'completed') {
+      const existing = completedMap.get(key);
+      if (!existing) {
+        completedMap.set(key, log);
+      } else {
+        // Keep the one with richer logged content
+        const existingScore = (existing.exercises?.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0) || 0) +
+          (existing.notes ? 2 : 0) +
+          (existing.runDetails ? 5 : 0);
+        const logScore = (log.exercises?.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0) || 0) +
+          (log.notes ? 2 : 0) +
+          (log.runDetails ? 5 : 0);
+
+        if (logScore >= existingScore) {
+          completedMap.set(key, log);
+        }
+      }
+    } else if (log.status === 'scheduled') {
+      // Remove obsolete scheduled workouts from the past (< today)
+      if (log.date < todayStr) return;
+
+      // If already completed on this date & type, do not add scheduled
+      if (completedMap.has(key)) return;
+
+      if (!scheduledMap.has(key)) {
+        scheduledMap.set(key, log);
+      }
+    }
+  });
+
+  // Ensure no scheduled workouts conflict with completed ones
+  completedMap.forEach((_, key) => {
+    scheduledMap.delete(key);
+  });
+
+  const result = [...Array.from(completedMap.values()), ...Array.from(scheduledMap.values())];
+  result.sort((a, b) => a.date.localeCompare(b.date));
+  return result;
+};
+
+// Load logs from LocalStorage with automatic cleanup
 export const getStoredLogs = (): WorkoutLog[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.LOGS);
     if (!raw) return getInitialSeedLogs();
-    return JSON.parse(raw);
+    const parsed: WorkoutLog[] = JSON.parse(raw);
+    return cleanAndDeduplicateLogs(parsed);
   } catch (err) {
     console.error('Failed to load logs from localStorage', err);
     return getInitialSeedLogs();
@@ -51,7 +108,8 @@ export const getStoredLogs = (): WorkoutLog[] => {
 // Save logs to LocalStorage
 export const saveStoredLogs = (logs: WorkoutLog[]): void => {
   try {
-    localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(logs));
+    const cleaned = cleanAndDeduplicateLogs(logs);
+    localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(cleaned));
     localStorage.setItem('styrke_app_local_updated_at', new Date().toISOString());
   } catch (err) {
     console.error('Failed to save logs to localStorage', err);
@@ -60,43 +118,77 @@ export const saveStoredLogs = (logs: WorkoutLog[]): void => {
 
 // Smart log merger to ensure user-created schedules and cloud logs never overwrite each other
 export const mergeWorkoutLogs = (localLogs: WorkoutLog[], incomingLogs: WorkoutLog[]): WorkoutLog[] => {
-  if (!Array.isArray(incomingLogs) || incomingLogs.length === 0) return localLogs || [];
-  if (!Array.isArray(localLogs) || localLogs.length === 0) return incomingLogs;
+  const safeLocal = cleanAndDeduplicateLogs(localLogs || []);
+  const safeIncoming = cleanAndDeduplicateLogs(incomingLogs || []);
 
-  const map = new Map<string, WorkoutLog>();
+  if (safeIncoming.length === 0) return safeLocal;
+  if (safeLocal.length === 0) return safeIncoming;
 
-  // 1. Add all local logs
-  localLogs.forEach((l) => {
-    if (l && l.id) map.set(l.id, l);
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  // 1. Preserve ALL completed logs from both devices/sessions
+  const completedMap = new Map<string, WorkoutLog>();
+
+  safeLocal.filter((l) => l.status === 'completed').forEach((l) => {
+    const key = `${l.date}_${l.type}`;
+    completedMap.set(key, l);
   });
 
-  // 2. Safely merge incoming logs
-  incomingLogs.forEach((inc) => {
-    if (!inc || !inc.id) return;
-
-    const existing = map.get(inc.id);
+  safeIncoming.filter((l) => l.status === 'completed').forEach((l) => {
+    const key = `${l.date}_${l.type}`;
+    const existing = completedMap.get(key);
     if (!existing) {
-      map.set(inc.id, inc);
+      completedMap.set(key, l);
     } else {
-      // Keep completed log over scheduled log
-      if (inc.status === 'completed' && existing.status !== 'completed') {
-        map.set(inc.id, inc);
-      } else if (existing.status === 'completed' && inc.status !== 'completed') {
-        // Keep existing completed log
-      } else {
-        const existingDetailCount = (existing.exercises?.length || 0) + (existing.notes ? 1 : 0);
-        const incomingDetailCount = (inc.exercises?.length || 0) + (inc.notes ? 1 : 0);
+      const existingScore = (existing.exercises?.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0) || 0) +
+        (existing.notes ? 2 : 0) +
+        (existing.runDetails ? 5 : 0);
+      const logScore = (l.exercises?.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0) || 0) +
+        (l.notes ? 2 : 0) +
+        (l.runDetails ? 5 : 0);
 
-        if (incomingDetailCount >= existingDetailCount) {
-          map.set(inc.id, inc);
-        }
+      if (logScore >= existingScore) {
+        completedMap.set(key, l);
       }
     }
   });
 
-  const merged = Array.from(map.values());
-  merged.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  return merged;
+  // 2. Manage scheduled workouts:
+  // Incoming cloud scheduled logs take priority for active training plan.
+  const scheduledMap = new Map<string, WorkoutLog>();
+
+  // Include non-colliding future local scheduled logs (that aren't default seed logs)
+  const incomingHasScheduled = safeIncoming.some((l) => l.status === 'scheduled' && l.date >= todayStr);
+
+  if (!incomingHasScheduled) {
+    // If incoming doesn't have scheduled logs, retain local scheduled logs
+    safeLocal.filter((l) => l.status === 'scheduled' && l.date >= todayStr).forEach((l) => {
+      const key = `${l.date}_${l.type}`;
+      if (!completedMap.has(key)) {
+        scheduledMap.set(key, l);
+      }
+    });
+  } else {
+    // Incoming has an active schedule -> apply incoming scheduled logs
+    safeIncoming.filter((l) => l.status === 'scheduled' && l.date >= todayStr).forEach((l) => {
+      const key = `${l.date}_${l.type}`;
+      if (!completedMap.has(key)) {
+        scheduledMap.set(key, l);
+      }
+    });
+
+    // If local had custom scheduled workouts on dates where incoming didn't schedule anything, keep non-seed ones
+    safeLocal.filter((l) => l.status === 'scheduled' && l.date >= todayStr && !l.id.startsWith('seed-')).forEach((l) => {
+      const key = `${l.date}_${l.type}`;
+      if (!completedMap.has(key) && !scheduledMap.has(key)) {
+        scheduledMap.set(key, l);
+      }
+    });
+  }
+
+  const result = [...Array.from(completedMap.values()), ...Array.from(scheduledMap.values())];
+  result.sort((a, b) => a.date.localeCompare(b.date));
+  return cleanAndDeduplicateLogs(result);
 };
 
 // Load schedule config
@@ -137,20 +229,9 @@ function getInitialSeedLogs(): WorkoutLog[] {
   const dateA = format(addDays(Monday, 0), 'yyyy-MM-dd'); // Mandag
   const dateB = format(addDays(Monday, 3), 'yyyy-MM-dd'); // Torsdag
   const dateRun = format(addDays(Monday, 1), 'yyyy-MM-dd'); // Tirsdag
+  const todayStr = format(today, 'yyyy-MM-dd');
 
   const logs: WorkoutLog[] = [
-    {
-      id: `seed-okt-a-${dateA}`,
-      date: dateA,
-      type: 'okt-a',
-      status: 'scheduled',
-    },
-    {
-      id: `seed-okt-b-${dateB}`,
-      date: dateB,
-      type: 'okt-b',
-      status: 'scheduled',
-    },
     {
       id: `seed-lop-${dateRun}`,
       date: dateRun,
@@ -165,6 +246,24 @@ function getInitialSeedLogs(): WorkoutLog[] {
     },
   ];
 
+  if (dateA >= todayStr) {
+    logs.push({
+      id: `seed-okt-a-${dateA}`,
+      date: dateA,
+      type: 'okt-a',
+      status: 'scheduled',
+    });
+  }
+
+  if (dateB >= todayStr) {
+    logs.push({
+      id: `seed-okt-b-${dateB}`,
+      date: dateB,
+      type: 'okt-b',
+      status: 'scheduled',
+    });
+  }
+
   return logs;
 }
 
@@ -177,6 +276,7 @@ export const generateAutoSchedule = (
   const startDate = new Date(startDateStr);
   const weekStart = startOfWeek(startDate, { weekStartsOn: 1 });
   
+  // 100% preserve all completed logs
   const completedLogs = existingLogs.filter((l) => l.status === 'completed');
   const newLogs: WorkoutLog[] = [...completedLogs];
 
@@ -193,7 +293,7 @@ export const generateAutoSchedule = (
       const alreadyCompleted = completedLogs.find((l) => isSameDay(new Date(l.date), workoutDate));
       if (!alreadyCompleted) {
         newLogs.push({
-          id: `auto-${currentType}-${dateStr}-${Math.random().toString(36).substr(2, 5)}`,
+          id: `scheduled-${currentType}-${dateStr}`,
           date: dateStr,
           type: currentType,
           status: 'scheduled',
@@ -204,6 +304,7 @@ export const generateAutoSchedule = (
     }
   }
 
-  saveStoredLogs(newLogs);
-  return newLogs;
+  const cleaned = cleanAndDeduplicateLogs(newLogs);
+  saveStoredLogs(cleaned);
+  return cleaned;
 };

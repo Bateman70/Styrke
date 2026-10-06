@@ -329,6 +329,7 @@ export function App() {
       {isCloudSyncOpen && (
         <CloudSyncModal
           logs={logs}
+          userProfile={userProfile}
           onApplyCloudData={handleApplyCloudData}
           onClose={() => setIsCloudSyncOpen(false)}
         />
