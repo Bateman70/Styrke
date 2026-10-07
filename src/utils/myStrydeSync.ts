@@ -110,14 +110,19 @@ export async function syncWorkoutToMyStryde(
       }
     }
 
+    const workoutDateStr = workout.date;
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const isToday = workoutDateStr === todayStr;
+
     const payload = {
       userName: isPin ? undefined : targetUser,
       userPin: isPin ? targetUser : undefined,
       type: isRun ? 'Løpetur' : 'Styrke',
       durationMinutes,
       distanceKm,
-      date: workout.date,
-      completedAt: workout.completedAt || new Date().toISOString(),
+      date: workoutDateStr,
+      completedAt: isToday ? (workout.completedAt || new Date().toISOString()) : undefined,
       note: formattedNote,
       source: 'MyStrength',
     };
