@@ -82,8 +82,9 @@ export async function syncWorkoutToMyStryde(
       const runType = workout.runDetails.runType || 'Løpetur';
       formattedNote = `${runType}: ${distanceKm} km på ${durationMinutes} min`;
       if (workout.notes || workout.runDetails.notes) {
-        formattedNote += ` (${workout.notes || workout.runDetails.notes})`;
+        formattedNote += ` — ${workout.notes || workout.runDetails.notes}`;
       }
+      formattedNote += ` (sync fra MyStrength)`;
     } else {
       // Styrkeøkt: oppsummer øvelser og sett
       const typeLabel = workout.type === 'okt-a' ? 'Økt A' : workout.type === 'okt-b' ? 'Økt B' : 'Styrkeøkt';
@@ -101,13 +102,14 @@ export async function syncWorkoutToMyStryde(
         });
       }
 
-      formattedNote = `Fullført ${title} i MyStrength! 💪`;
+      formattedNote = `Fullført ${title} 💪`;
       if (exerciseSummaries.length > 0) {
         formattedNote += `\n${exerciseSummaries.join(', ')}`;
       }
       if (workout.notes) {
         formattedNote += `\nNotat: ${workout.notes}`;
       }
+      formattedNote += `\n(sync fra MyStrength)`;
     }
 
     const workoutDateStr = workout.date;
