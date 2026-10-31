@@ -205,6 +205,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <div className="space-y-1 mt-1">
                       {dayLogs.map((log) => {
                         const isCompleted = log.status === 'completed';
+                        const isDemo = log.id.startsWith('seed-');
 
                         if (log.type === 'okt-a') {
                           return (
@@ -216,7 +217,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                   : 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/50'
                               }`}
                             >
-                              <span className="truncate">Økt A</span>
+                              <span className="truncate">{isDemo ? 'Økt A (Demo)' : 'Økt A'}</span>
                               {isCompleted ? <CheckCircle2 className="w-3 h-3 text-slate-950 shrink-0 ml-1" /> : <Clock className="w-3 h-3 text-emerald-400 shrink-0 ml-1" />}
                             </div>
                           );
@@ -232,7 +233,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                   : 'bg-indigo-950/60 text-indigo-300 border border-indigo-800/50'
                               }`}
                             >
-                              <span className="truncate">Økt B</span>
+                              <span className="truncate">{isDemo ? 'Økt B (Demo)' : 'Økt B'}</span>
                               {isCompleted ? <CheckCircle2 className="w-3 h-3 text-slate-950 shrink-0 ml-1" /> : <Clock className="w-3 h-3 text-indigo-400 shrink-0 ml-1" />}
                             </div>
                           );
@@ -248,7 +249,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                   : 'bg-purple-950/60 text-purple-300 border border-purple-800/50'
                               }`}
                             >
-                              <span className="truncate">Fri-økt</span>
+                              <span className="truncate">{isDemo ? 'Fri-økt (Demo)' : 'Fri-økt'}</span>
                               {isCompleted ? <CheckCircle2 className="w-3 h-3 text-slate-950 shrink-0 ml-1" /> : <Clock className="w-3 h-3 text-purple-400 shrink-0 ml-1" />}
                             </div>
                           );
@@ -260,7 +261,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               key={log.id}
                               className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-orange-500 text-slate-950 flex items-center justify-between truncate"
                             >
-                              <span className="truncate">{log.runDetails?.distanceKm || ''} km Løp</span>
+                              <span className="truncate">{log.runDetails?.distanceKm || ''} km Løp{isDemo ? ' (Demo)' : ''}</span>
                               <Flame className="w-3 h-3 text-slate-950 shrink-0 ml-1" />
                             </div>
                           );
@@ -295,6 +296,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 ) : (
                   selectedDayLogs.map((log) => {
                     const isCompleted = log.status === 'completed';
+                    const isDemo = log.id.startsWith('seed-');
 
                     if (log.type === 'okt-a' || log.type === 'okt-b' || log.type === 'fri-okt') {
                       const program = activePrograms?.[log.type] || WORKOUT_PROGRAMS[log.type];
@@ -313,13 +315,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                              isCompleted
-                                ? log.type === 'fri-okt' ? 'bg-purple-500 text-slate-950 font-black' : 'bg-emerald-500 text-slate-950 font-black'
-                                : badgeColor
-                            }`}>
-                              {badgeLabel} {isCompleted ? '✓ Fullført' : ''}
-                            </span>
+                            <div className="flex items-center space-x-1.5">
+                              <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                isCompleted
+                                  ? log.type === 'fri-okt' ? 'bg-purple-500 text-slate-950 font-black' : 'bg-emerald-500 text-slate-950 font-black'
+                                  : badgeColor
+                              }`}>
+                                {badgeLabel} {isCompleted ? '✓ Fullført' : ''}
+                              </span>
+                              {isDemo && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase">
+                                  Demo
+                                </span>
+                              )}
+                            </div>
 
                             <button
                               onClick={() => onDeleteLog(log.id)}
@@ -367,10 +376,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           className="p-4 rounded-xl border bg-orange-950/20 border-orange-800/40 text-orange-200"
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <span className="px-2 py-0.5 rounded text-xs font-bold bg-orange-500 text-slate-950 flex items-center space-x-1">
-                              <Flame className="w-3 h-3" />
-                              <span>Løpeøkt Fullført</span>
-                            </span>
+                            <div className="flex items-center space-x-1.5">
+                              <span className="px-2 py-0.5 rounded text-xs font-bold bg-orange-500 text-slate-950 flex items-center space-x-1">
+                                <Flame className="w-3 h-3" />
+                                <span>Løpeøkt Fullført</span>
+                              </span>
+                              {isDemo && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase">
+                                  Demo
+                                </span>
+                              )}
+                            </div>
 
                             <button
                               onClick={() => onDeleteLog(log.id)}

@@ -111,7 +111,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 title="Endre profil og treningsmål"
               >
                 <User className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                <span className="hidden sm:inline">Profil ({userProfile?.age || 55} år)</span>
+                <span className="hidden sm:inline">
+                  {userProfile?.age && userProfile.age > 0 ? `Profil (${userProfile.age} år)` : 'Profil'}
+                </span>
                 <span className="sm:hidden text-[11px]">Profil</span>
               </button>
 

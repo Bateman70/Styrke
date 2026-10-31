@@ -8,14 +8,14 @@ const STORAGE_KEYS = {
 };
 
 export const DEFAULT_USER_PROFILE: UserProfile = {
-  age: 55,
+  age: 0,
   gender: 'mann',
-  weightKg: 95,
+  weightKg: 0,
   goal: 'lopere',
   location: 'senter',
   experience: 'middels',
   daysPerWeek: 2,
-  hasCompletedSetup: true,
+  hasCompletedSetup: false,
 };
 
 export const getUserProfile = (): UserProfile => {
@@ -132,8 +132,16 @@ export const mergeWorkoutLogs = (
   incomingLogs: WorkoutLog[],
   replaceScheduleWithIncoming: boolean = true
 ): WorkoutLog[] => {
-  const safeLocal = cleanAndDeduplicateLogs(localLogs || []);
-  const safeIncoming = cleanAndDeduplicateLogs(incomingLogs || []);
+  const rawLocal = cleanAndDeduplicateLogs(localLogs || []);
+  const rawIncoming = cleanAndDeduplicateLogs(incomingLogs || []);
+
+  // If any real (non-demo) logs exist in either local or incoming, strip out initial demo seed logs
+  const hasRealLogs =
+    rawLocal.some((l) => !l.id.startsWith('seed-')) ||
+    rawIncoming.some((l) => !l.id.startsWith('seed-'));
+
+  const safeLocal = hasRealLogs ? rawLocal.filter((l) => !l.id.startsWith('seed-')) : rawLocal;
+  const safeIncoming = hasRealLogs ? rawIncoming.filter((l) => !l.id.startsWith('seed-')) : rawIncoming;
 
   if (safeIncoming.length === 0 && !replaceScheduleWithIncoming) return safeLocal;
   if (safeLocal.length === 0) return safeIncoming;
@@ -219,7 +227,7 @@ export const saveScheduleConfig = (config: UserScheduleConfig): void => {
   }
 };
 
-// Helper: Seed initial logs for the current week so user immediately sees a working setup
+// Helper: Seed initial demo logs for the current week so a new user immediately sees a working setup
 function getInitialSeedLogs(): WorkoutLog[] {
   const today = new Date();
   const Monday = startOfWeek(today, { weekStartsOn: 1 });
@@ -239,7 +247,7 @@ function getInitialSeedLogs(): WorkoutLog[] {
         distanceKm: 8.5,
         durationMinutes: 48,
         runType: 'Rolig langtur',
-        notes: 'God følelse i beina.',
+        notes: 'DEMO-ØKT: Eksempel på logget løpetur. Fjernes automatisk når du lager din egen treningsplan.',
       },
     },
   ];
@@ -250,6 +258,7 @@ function getInitialSeedLogs(): WorkoutLog[] {
       date: dateA,
       type: 'okt-a',
       status: 'scheduled',
+      notes: 'DEMO-ØKT: Fjernes automatisk når du lager din egen treningsplan.',
     });
   }
 
@@ -259,6 +268,7 @@ function getInitialSeedLogs(): WorkoutLog[] {
       date: dateB,
       type: 'okt-b',
       status: 'scheduled',
+      notes: 'DEMO-ØKT: Fjernes automatisk når du lager din egen treningsplan.',
     });
   }
 
@@ -274,8 +284,8 @@ export const generateAutoSchedule = (
   const startDate = new Date(startDateStr);
   const weekStart = startOfWeek(startDate, { weekStartsOn: 1 });
   
-  // 100% preserve all completed logs
-  const completedLogs = existingLogs.filter((l) => l.status === 'completed');
+  // 100% preserve all real completed logs, and remove all demo ("seed-") logs
+  const completedLogs = existingLogs.filter((l) => l.status === 'completed' && !l.id.startsWith('seed-'));
   const newLogs: WorkoutLog[] = [...completedLogs];
 
   let currentType: WorkoutType = 'okt-a';

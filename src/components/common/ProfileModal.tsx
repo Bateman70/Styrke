@@ -20,8 +20,12 @@ interface ProfileModalProps {
 export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSaveProfile, onClose }) => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
-  const [ageInput, setAgeInput] = useState<string>(() => String(currentProfile.age || 55));
-  const [weightInput, setWeightInput] = useState<string>(() => String(currentProfile.weightKg || 95));
+  const [ageInput, setAgeInput] = useState<string>(() =>
+    currentProfile.age && currentProfile.age > 0 ? String(currentProfile.age) : ''
+  );
+  const [weightInput, setWeightInput] = useState<string>(() =>
+    currentProfile.weightKg && currentProfile.weightKg > 0 ? String(currentProfile.weightKg) : ''
+  );
   const [gender, setGender] = useState<Gender>(currentProfile.gender || 'mann');
   const [goal, setGoal] = useState<FitnessGoal>(currentProfile.goal || 'lopere');
   const [location, setLocation] = useState<TrainingLocation>(currentProfile.location || 'senter');
@@ -46,13 +50,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
 
   const getValidAge = () => {
     const val = parseInt(ageInput, 10);
-    if (isNaN(val)) return 55;
+    if (isNaN(val) || val <= 0) return 0;
     return Math.min(95, Math.max(16, val));
   };
 
   const getValidWeight = () => {
     const val = parseInt(weightInput, 10);
-    if (isNaN(val)) return 95;
+    if (isNaN(val) || val <= 0) return 0;
     return Math.min(200, Math.max(30, val));
   };
 
@@ -541,7 +545,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ currentProfile, onSa
                     }
                   </h4>
                   <p className="text-xs text-slate-300">
-                    Tilpasset {gender === 'mann' ? 'Mann' : gender === 'kvinne' ? 'Kvinne' : 'Bruker'} ({getValidAge()} år, {getValidWeight()} kg) • {
+                    Tilpasset {gender === 'mann' ? 'Mann' : gender === 'kvinne' ? 'Kvinne' : 'Bruker'}
+                    {getValidAge() > 0 || getValidWeight() > 0
+                      ? ` (${[getValidAge() > 0 ? `${getValidAge()} år` : null, getValidWeight() > 0 ? `${getValidWeight()} kg` : null].filter(Boolean).join(', ')})`
+                      : ''} • {
                       location === 'hjemme' ? '🏠 Hjemmegym (Manualer & Strikk)' : location === 'kombinasjon' ? '🔄 Kombinasjon (Senter & Hjemme)' : '🏋️‍♂️ Treningssenter'
                     }
                   </p>

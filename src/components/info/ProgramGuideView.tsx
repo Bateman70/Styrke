@@ -40,7 +40,11 @@ export const ProgramGuideView: React.FC<ProgramGuideViewProps> = ({
           </h1>
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
             {userProfile
-              ? `Skreddersydde helkroppsøkter tilpasset din profil (${userProfile.age} år, ${userProfile.weightKg} kg) med ${
+              ? `Skreddersydde helkroppsøkter tilpasset din profil${
+                  userProfile.age > 0 || userProfile.weightKg > 0
+                    ? ` (${[userProfile.age > 0 ? `${userProfile.age} år` : null, userProfile.weightKg > 0 ? `${userProfile.weightKg} kg` : null].filter(Boolean).join(', ')})`
+                    : ''
+                } med ${
                   userProfile.location === 'hjemme'
                     ? 'øvelser for hjemmegym (manualer, strikk og kroppsvekt)'
                     : userProfile.location === 'kombinasjon'
@@ -82,7 +86,10 @@ export const ProgramGuideView: React.FC<ProgramGuideViewProps> = ({
             <div>
               <span className="text-xs text-blue-400 font-bold uppercase tracking-wider block">Aktiv Profil & AI-Program</span>
               <h4 className="font-extrabold text-slate-100 text-sm">
-                {userProfile.gender === 'mann' ? 'Mann' : userProfile.gender === 'kvinne' ? 'Kvinne' : 'Bruker'} ({userProfile.age} år, {userProfile.weightKg} kg) • {
+                {userProfile.gender === 'mann' ? 'Mann' : userProfile.gender === 'kvinne' ? 'Kvinne' : 'Bruker'}
+                {userProfile.age > 0 || userProfile.weightKg > 0
+                  ? ` (${[userProfile.age > 0 ? `${userProfile.age} år` : null, userProfile.weightKg > 0 ? `${userProfile.weightKg} kg` : null].filter(Boolean).join(', ')})`
+                  : ''} • {
                   userProfile.location === 'hjemme' ? '🏠 Hjemmegym' : userProfile.location === 'kombinasjon' ? '🔄 Kombinasjon' : '🏋️‍♂️ Treningssenter'
                 } — {
                   userProfile.goal === 'lopere' ? 'Styrke for Løpere' : userProfile.goal === 'helse_styrke' ? 'Generell Helse & Styrke' : userProfile.goal === 'muskelvekst' ? 'Muskelvekst & Styrke' : 'Vektnedgang & Puls'

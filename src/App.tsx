@@ -158,14 +158,15 @@ export function App() {
 
   // Save completed/edited strength workout log
   const handleSaveWorkoutLog = (logToSave: WorkoutLog) => {
-    const existingIndex = logs.findIndex((l) => l.id === logToSave.id);
+    const nonDemoLogs = logs.filter((l) => !l.id.startsWith('seed-') || l.id === logToSave.id);
+    const existingIndex = nonDemoLogs.findIndex((l) => l.id === logToSave.id);
     let updated: WorkoutLog[] = [];
 
     if (existingIndex >= 0) {
-      updated = [...logs];
+      updated = [...nonDemoLogs];
       updated[existingIndex] = logToSave;
     } else {
-      updated = [logToSave, ...logs];
+      updated = [logToSave, ...nonDemoLogs];
     }
 
     handleSaveLogs(updated);
@@ -186,14 +187,15 @@ export function App() {
 
   // Save run log
   const handleSaveRunLog = (runLog: WorkoutLog) => {
-    const existingIndex = logs.findIndex((l) => l.id === runLog.id);
+    const nonDemoLogs = logs.filter((l) => !l.id.startsWith('seed-') || l.id === runLog.id);
+    const existingIndex = nonDemoLogs.findIndex((l) => l.id === runLog.id);
     let updated: WorkoutLog[] = [];
 
     if (existingIndex >= 0) {
-      updated = [...logs];
+      updated = [...nonDemoLogs];
       updated[existingIndex] = runLog;
     } else {
-      updated = [runLog, ...logs];
+      updated = [runLog, ...nonDemoLogs];
     }
 
     handleSaveLogs(updated);
@@ -288,10 +290,17 @@ export function App() {
           <div className="bg-slate-900/90 border-b border-slate-800/90 px-4 py-2.5 mb-6 text-xs text-slate-300 shadow-md">
             <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold border border-blue-500/30 text-[11px] flex items-center space-x-1 shrink-0">
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Aktivt Program</span>
-                </span>
+                {logs.some((l) => l.id.startsWith('seed-')) ? (
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 text-[11px] flex items-center space-x-1 shrink-0">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Demo-visning (fjernes når du oppretter din plan)</span>
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold border border-blue-500/30 text-[11px] flex items-center space-x-1 shrink-0">
+                    <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Aktivt Program</span>
+                  </span>
+                )}
                 <span className="font-extrabold text-slate-100 text-sm">
                   {userProfile.goal === 'lopere'
                     ? 'Styrke for Løpere'
@@ -302,14 +311,17 @@ export function App() {
                     : 'Vektnedgang & Puls'}
                 </span>
                 <span className="text-slate-400 text-xs">
-                  • {userProfile.location === 'hjemme' ? '🏠 Hjemmegym' : userProfile.location === 'kombinasjon' ? '🔄 Kombinasjon' : '🏋️‍♂️ Treningssenter'} ({userProfile.age} år, {userProfile.weightKg} kg)
+                  • {userProfile.location === 'hjemme' ? '🏠 Hjemmegym' : userProfile.location === 'kombinasjon' ? '🔄 Kombinasjon' : '🏋️‍♂️ Treningssenter'}
+                  {userProfile.age > 0 || userProfile.weightKg > 0
+                    ? ` (${[userProfile.age > 0 ? `${userProfile.age} år` : null, userProfile.weightKg > 0 ? `${userProfile.weightKg} kg` : null].filter(Boolean).join(', ')})`
+                    : ''}
                 </span>
               </div>
               <button
                 onClick={() => setIsProfileModalOpen(true)}
                 className="text-blue-400 hover:text-blue-300 font-bold underline cursor-pointer text-xs ml-auto transition-colors"
               >
-                Endre Profil / Generer Nytt
+                {logs.some((l) => l.id.startsWith('seed-')) ? 'Opprett din treningsplan →' : 'Endre Profil / Generer Nytt'}
               </button>
             </div>
           </div>

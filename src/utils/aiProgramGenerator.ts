@@ -7,6 +7,8 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
 
   const isOlder = age >= 50;
   const isBeginner = experience === 'nybegynner';
+  const ageTag = age && age > 0 ? ` (${age} år)` : '';
+  const weightTag = weightKg && weightKg > 0 ? `, ${weightKg} kg` : '';
 
   // Determine rep scheme & sets based on age/experience
   const mainReps = isOlder || isBeginner ? '10–12' : '6–8';
@@ -18,8 +20,8 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
   if (goal === 'lopere') {
     const oktA: WorkoutProgram = {
       id: 'okt-a',
-      title: `Økt A — Løpestyrke & Stabilitet (${age} år)`,
-      subtitle: `Tilpasset ${gender === 'mann' ? 'mann' : gender === 'kvinne' ? 'kvinne' : 'løper'}, ${weightKg} kg (${experience})`,
+      title: `Økt A — Løpestyrke & Stabilitet${ageTag}`,
+      subtitle: `Tilpasset ${gender === 'mann' ? 'mann' : gender === 'kvinne' ? 'kvinne' : 'løper'}${weightTag} (${experience})`,
       estimatedTime: '45–50 minutter',
       focusAreas: ['Skadeforebygging', 'Akilles & Legger', 'Kjerne & Hoftestabilitet'],
       exercises: [
@@ -74,8 +76,8 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
 
     const oktB: WorkoutProgram = {
       id: 'okt-b',
-      title: `Økt B — Ettbensstyrke & Kjerne (${age} år)`,
-      subtitle: `Tilpasset ${gender === 'mann' ? 'mann' : gender === 'kvinne' ? 'kvinne' : 'løper'}, ${weightKg} kg (${experience})`,
+      title: `Økt B — Ettbensstyrke & Kjerne${ageTag}`,
+      subtitle: `Tilpasset ${gender === 'mann' ? 'mann' : gender === 'kvinne' ? 'kvinne' : 'løper'}${weightTag} (${experience})`,
       estimatedTime: '45–50 minutter',
       focusAreas: ['Ettbensbalanse', 'Lår & Sete', 'Overkropp & Holdning'],
       exercises: [
@@ -130,7 +132,7 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
   if (goal === 'helse_styrke') {
     const oktA: WorkoutProgram = {
       id: 'okt-a',
-      title: `Økt A — Funksjonell Helse & Rygg (${age} år)`,
+      title: `Økt A — Funksjonell Helse & Rygg${ageTag}`,
       subtitle: `Generell helse & styrke • ${experience}`,
       estimatedTime: '40–45 minutter',
       focusAreas: ['Rygghelse', 'Holdning', 'Helkroppsstyrke'],
@@ -181,7 +183,7 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
 
     const oktB: WorkoutProgram = {
       id: 'okt-b',
-      title: `Økt B — Skuldre, Ben & Stabilitet (${age} år)`,
+      title: `Økt B — Skuldre, Ben & Stabilitet${ageTag}`,
       subtitle: `Generell helse & styrke • ${experience}`,
       estimatedTime: '40–45 minutter',
       focusAreas: ['Skuldre', 'Benstyrke', 'Balanse'],
@@ -238,7 +240,7 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
   if (goal === 'muskelvekst') {
     const oktA: WorkoutProgram = {
       id: 'okt-a',
-      title: `Økt A — Bryst, Rygg & Ben (${age} år)`,
+      title: `Økt A — Bryst, Rygg & Ben${ageTag}`,
       subtitle: `Muskelvekst & Styrke • ${experience}`,
       estimatedTime: '50–55 minutter',
       focusAreas: ['Bryst', 'Ryggbredde', 'Lårstyrke'],
@@ -289,7 +291,7 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
 
     const oktB: WorkoutProgram = {
       id: 'okt-b',
-      title: `Økt B — Skuldre, Hamstrings & Triceps (${age} år)`,
+      title: `Økt B — Skuldre, Hamstrings & Triceps${ageTag}`,
       subtitle: `Muskelvekst & Styrke • ${experience}`,
       estimatedTime: '50–55 minutter',
       focusAreas: ['Skuldre', 'Hamstrings', 'Armer & Kjerne'],
@@ -345,7 +347,7 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
   // 4. Goal: Vektnedgang & Kondisjonsstyrke
   const oktA: WorkoutProgram = {
     id: 'okt-a',
-    title: `Økt A — Høy Puls & Forbrenning (${age} år)`,
+    title: `Økt A — Høy Puls & Forbrenning${ageTag}`,
     subtitle: `Vektnedgang & Kondisjonsstyrke • ${experience}`,
     estimatedTime: '35–40 minutter',
     focusAreas: ['Forbrenning', 'Helkropps-tempo', 'Kjerne'],
@@ -396,7 +398,7 @@ export function generateAIWorkoutPrograms(profile: UserProfile): Record<'okt-a' 
 
   const oktB: WorkoutProgram = {
     id: 'okt-b',
-    title: `Økt B — Utfall, Push-ups & Kjerne-intervall (${age} år)`,
+    title: `Økt B — Utfall, Push-ups & Kjerne-intervall${ageTag}`,
     subtitle: `Vektnedgang & Kondisjonsstyrke • ${experience}`,
     estimatedTime: '35–40 minutter',
     focusAreas: ['Utholdenhet', 'Overkropp & Ben', 'Høy Puls'],

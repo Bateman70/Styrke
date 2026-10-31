@@ -194,6 +194,11 @@ export const PlanListView: React.FC<PlanListViewProps> = ({
                           <span className={`px-2.5 py-1 rounded-lg text-xs font-extrabold tracking-wide uppercase ${badgeColor}`}>
                             {badgeLabel}
                           </span>
+                          {log.id.startsWith('seed-') && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-extrabold text-[10px] uppercase">
+                              DEMO
+                            </span>
+                          )}
                           {isTodayDate && (
                             <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white font-bold text-[10px] animate-pulse">
                               I DAG
@@ -393,10 +398,17 @@ export const PlanListView: React.FC<PlanListViewProps> = ({
                       className="p-5 rounded-2xl border bg-orange-950/20 border-orange-800/40 text-orange-200 shadow-md space-y-3"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center space-x-1">
-                          <Flame className="w-3.5 h-3.5" />
-                          <span>Løping Fullført</span>
-                        </span>
+                        <div className="flex items-center space-x-2">
+                          <span className="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center space-x-1">
+                            <Flame className="w-3.5 h-3.5" />
+                            <span>Løping Fullført</span>
+                          </span>
+                          {log.id.startsWith('seed-') && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-extrabold text-[10px] uppercase">
+                              DEMO
+                            </span>
+                          )}
+                        </div>
 
                         <button
                           onClick={() => onDeleteLog(log.id)}
