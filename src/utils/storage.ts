@@ -39,52 +39,58 @@ export const saveUserProfile = (profile: UserProfile): void => {
 // Clean and deduplicate workout logs:
 // 1. All completed logs are 100% preserved.
 // 2. Past uncompleted scheduled workouts (< today) are pruned.
-// 3. Duplicate scheduled workouts on the same date are deduplicated.
+// 3. Duplicate scheduled workouts on the same date are deduplicated (max 1 scheduled workout per date).
 export const cleanAndDeduplicateLogs = (logs: WorkoutLog[]): WorkoutLog[] => {
   if (!Array.isArray(logs)) return [];
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   const completedMap = new Map<string, WorkoutLog>();
+  const completedStrengthDates = new Set<string>();
   const scheduledMap = new Map<string, WorkoutLog>();
 
+  // Pass 1: Collect all completed workouts
   logs.forEach((log) => {
     if (!log || !log.date || !log.type) return;
+    if (log.status !== 'completed') return;
 
     const key = `${log.date}_${log.type}`;
+    if (log.type !== 'lop') {
+      completedStrengthDates.add(log.date);
+    }
 
-    if (log.status === 'completed') {
-      const existing = completedMap.get(key);
-      if (!existing) {
+    const existing = completedMap.get(key);
+    if (!existing) {
+      completedMap.set(key, log);
+    } else {
+      // Keep the one with richer logged content
+      const existingScore = (existing.exercises?.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0) || 0) +
+        (existing.notes ? 2 : 0) +
+        (existing.runDetails ? 5 : 0);
+      const logScore = (log.exercises?.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0) || 0) +
+        (log.notes ? 2 : 0) +
+        (log.runDetails ? 5 : 0);
+
+      if (logScore >= existingScore) {
         completedMap.set(key, log);
-      } else {
-        // Keep the one with richer logged content
-        const existingScore = (existing.exercises?.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0) || 0) +
-          (existing.notes ? 2 : 0) +
-          (existing.runDetails ? 5 : 0);
-        const logScore = (log.exercises?.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0) || 0) +
-          (log.notes ? 2 : 0) +
-          (log.runDetails ? 5 : 0);
-
-        if (logScore >= existingScore) {
-          completedMap.set(key, log);
-        }
-      }
-    } else if (log.status === 'scheduled') {
-      // Remove obsolete scheduled workouts from the past (< today)
-      if (log.date < todayStr) return;
-
-      // If already completed on this date & type, do not add scheduled
-      if (completedMap.has(key)) return;
-
-      if (!scheduledMap.has(key)) {
-        scheduledMap.set(key, log);
       }
     }
   });
 
-  // Ensure no scheduled workouts conflict with completed ones
-  completedMap.forEach((_, key) => {
-    scheduledMap.delete(key);
+  // Pass 2: Collect scheduled workouts (only >= today, not conflicting with completed, max 1 per date)
+  logs.forEach((log) => {
+    if (!log || !log.date || !log.type) return;
+    if (log.status !== 'scheduled') return;
+
+    // Remove obsolete scheduled workouts from the past (< today)
+    if (log.date < todayStr) return;
+
+    const key = `${log.date}_${log.type}`;
+    // If already completed on this date, do not keep a scheduled workout
+    if (completedMap.has(key)) return;
+    if (log.type !== 'lop' && completedStrengthDates.has(log.date)) return;
+
+    // Deduplicate scheduled workouts by date (latest scheduled entry for that date wins)
+    scheduledMap.set(log.date, log);
   });
 
   const result = [...Array.from(completedMap.values()), ...Array.from(scheduledMap.values())];
@@ -106,36 +112,47 @@ export const getStoredLogs = (): WorkoutLog[] => {
 };
 
 // Save logs to LocalStorage
-export const saveStoredLogs = (logs: WorkoutLog[]): void => {
+export const saveStoredLogs = (logs: WorkoutLog[], customUpdatedAt?: string): void => {
   try {
     const cleaned = cleanAndDeduplicateLogs(logs);
     localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(cleaned));
-    localStorage.setItem('styrke_app_local_updated_at', new Date().toISOString());
+    localStorage.setItem('styrke_app_local_updated_at', customUpdatedAt || new Date().toISOString());
   } catch (err) {
     console.error('Failed to save logs to localStorage', err);
   }
 };
 
-// Smart log merger to ensure user-created schedules and cloud logs never overwrite each other
-export const mergeWorkoutLogs = (localLogs: WorkoutLog[], incomingLogs: WorkoutLog[]): WorkoutLog[] => {
+// Smart log merger:
+// 1. ALL completed logs from both local and cloud are 100% preserved.
+// 2. Uncompleted/scheduled logs are NEVER mixed between two plans:
+//    When replaceScheduleWithIncoming is true (default), all local uncompleted logs are deleted
+//    and replaced exclusively by the incoming cloud schedule.
+export const mergeWorkoutLogs = (
+  localLogs: WorkoutLog[],
+  incomingLogs: WorkoutLog[],
+  replaceScheduleWithIncoming: boolean = true
+): WorkoutLog[] => {
   const safeLocal = cleanAndDeduplicateLogs(localLogs || []);
   const safeIncoming = cleanAndDeduplicateLogs(incomingLogs || []);
 
-  if (safeIncoming.length === 0) return safeLocal;
+  if (safeIncoming.length === 0 && !replaceScheduleWithIncoming) return safeLocal;
   if (safeLocal.length === 0) return safeIncoming;
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   // 1. Preserve ALL completed logs from both devices/sessions
   const completedMap = new Map<string, WorkoutLog>();
+  const completedStrengthDates = new Set<string>();
 
   safeLocal.filter((l) => l.status === 'completed').forEach((l) => {
     const key = `${l.date}_${l.type}`;
     completedMap.set(key, l);
+    if (l.type !== 'lop') completedStrengthDates.add(l.date);
   });
 
   safeIncoming.filter((l) => l.status === 'completed').forEach((l) => {
     const key = `${l.date}_${l.type}`;
+    if (l.type !== 'lop') completedStrengthDates.add(l.date);
     const existing = completedMap.get(key);
     if (!existing) {
       completedMap.set(key, l);
@@ -153,38 +170,19 @@ export const mergeWorkoutLogs = (localLogs: WorkoutLog[], incomingLogs: WorkoutL
     }
   });
 
-  // 2. Manage scheduled workouts:
-  // Incoming cloud scheduled logs take priority for active training plan.
+  // 2. Manage scheduled (uncompleted) workouts:
+  // Never mix local and incoming schedules! Replace local uncompleted workouts with the active source.
   const scheduledMap = new Map<string, WorkoutLog>();
+  const scheduleSource = replaceScheduleWithIncoming ? safeIncoming : safeLocal;
 
-  // Include non-colliding future local scheduled logs (that aren't default seed logs)
-  const incomingHasScheduled = safeIncoming.some((l) => l.status === 'scheduled' && l.date >= todayStr);
-
-  if (!incomingHasScheduled) {
-    // If incoming doesn't have scheduled logs, retain local scheduled logs
-    safeLocal.filter((l) => l.status === 'scheduled' && l.date >= todayStr).forEach((l) => {
+  scheduleSource
+    .filter((l) => l.status === 'scheduled' && l.date >= todayStr)
+    .forEach((l) => {
       const key = `${l.date}_${l.type}`;
-      if (!completedMap.has(key)) {
-        scheduledMap.set(key, l);
-      }
+      if (completedMap.has(key)) return;
+      if (l.type !== 'lop' && completedStrengthDates.has(l.date)) return;
+      scheduledMap.set(l.date, l);
     });
-  } else {
-    // Incoming has an active schedule -> apply incoming scheduled logs
-    safeIncoming.filter((l) => l.status === 'scheduled' && l.date >= todayStr).forEach((l) => {
-      const key = `${l.date}_${l.type}`;
-      if (!completedMap.has(key)) {
-        scheduledMap.set(key, l);
-      }
-    });
-
-    // If local had custom scheduled workouts on dates where incoming didn't schedule anything, keep non-seed ones
-    safeLocal.filter((l) => l.status === 'scheduled' && l.date >= todayStr && !l.id.startsWith('seed-')).forEach((l) => {
-      const key = `${l.date}_${l.type}`;
-      if (!completedMap.has(key) && !scheduledMap.has(key)) {
-        scheduledMap.set(key, l);
-      }
-    });
-  }
 
   const result = [...Array.from(completedMap.values()), ...Array.from(scheduledMap.values())];
   result.sort((a, b) => a.date.localeCompare(b.date));

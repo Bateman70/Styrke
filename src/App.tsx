@@ -55,13 +55,19 @@ export function App() {
     // Silent background fetch from cloud
     autoFetchFromCloud().then((cloudData) => {
       if (cloudData) {
+        const localUpdatedAt = localStorage.getItem('styrke_app_local_updated_at');
+        const isCloudNewer =
+          !localUpdatedAt ||
+          !cloudData.updatedAt ||
+          new Date(cloudData.updatedAt).getTime() >= new Date(localUpdatedAt).getTime();
+
         if (cloudData.logs && cloudData.logs.length > 0) {
           const currentLocal = getStoredLogs();
-          const merged = mergeWorkoutLogs(currentLocal, cloudData.logs);
+          const merged = mergeWorkoutLogs(currentLocal, cloudData.logs, isCloudNewer);
           setLogs(merged);
-          saveStoredLogs(merged);
+          saveStoredLogs(merged, isCloudNewer ? cloudData.updatedAt : localUpdatedAt || undefined);
         }
-        if (cloudData.userProfile) {
+        if (cloudData.userProfile && isCloudNewer) {
           setUserProfile(cloudData.userProfile);
           saveUserProfile(cloudData.userProfile);
         }
@@ -80,13 +86,19 @@ export function App() {
     const handleFocus = () => {
       autoFetchFromCloud().then((cloudData) => {
         if (cloudData) {
+          const localUpdatedAt = localStorage.getItem('styrke_app_local_updated_at');
+          const isCloudNewer =
+            !localUpdatedAt ||
+            !cloudData.updatedAt ||
+            new Date(cloudData.updatedAt).getTime() >= new Date(localUpdatedAt).getTime();
+
           if (cloudData.logs && cloudData.logs.length > 0) {
             const currentLocal = getStoredLogs();
-            const merged = mergeWorkoutLogs(currentLocal, cloudData.logs);
+            const merged = mergeWorkoutLogs(currentLocal, cloudData.logs, isCloudNewer);
             setLogs(merged);
-            saveStoredLogs(merged);
+            saveStoredLogs(merged, isCloudNewer ? cloudData.updatedAt : localUpdatedAt || undefined);
           }
-          if (cloudData.userProfile) {
+          if (cloudData.userProfile && isCloudNewer) {
             setUserProfile(cloudData.userProfile);
             saveUserProfile(cloudData.userProfile);
           }
@@ -223,14 +235,18 @@ export function App() {
 
   // Apply downloaded Cloud Sync data from modal
   const handleApplyCloudData = (payload: CloudSyncPayload) => {
-    if (payload.logs) {
-      const currentLocal = getStoredLogs();
-      const merged = mergeWorkoutLogs(currentLocal, payload.logs);
-      handleSaveLogs(merged);
-    }
+    const nextProfile = payload.userProfile || userProfile;
     if (payload.userProfile) {
       setUserProfile(payload.userProfile);
       saveUserProfile(payload.userProfile);
+    }
+    if (payload.logs) {
+      const currentLocal = getStoredLogs();
+      // Always replace local uncompleted schedule with incoming cloud schedule
+      const merged = mergeWorkoutLogs(currentLocal, payload.logs, true);
+      setLogs(merged);
+      saveStoredLogs(merged, payload.updatedAt);
+      autoSaveToCloud(merged, undefined, nextProfile);
     }
     setActiveTab('calendar');
   };
